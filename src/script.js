@@ -520,7 +520,8 @@ document.getElementById('logoutBtn').onclick = () => {
   let overlay = document.getElementById('authOverlay');
   overlay.classList.remove("d-none");
   overlay.style.display = "flex";
-  showAuth(true);
+  isLogin = true; // <-- ADD THIS LINE
+  showAuth(true); // <-- ENSURE LOGIN MODE
 };
 document.getElementById('searchInput').oninput = function() {
   renderPasswordsList();
