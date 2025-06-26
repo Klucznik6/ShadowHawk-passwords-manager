@@ -90,7 +90,8 @@ function decrypt(cipher) {
 function defaultFolders() {
   return [
     { id: "all", name: "All Items", icon: "bi-shield-lock-fill", system: true },
-    { id: "favorites", name: "Favorites", icon: "bi-star-fill", system: true }
+    { id: "favorites", name: "Favorites", icon: "bi-star-fill", system: true },
+    { id: "watchtower", name: "Watchtower", icon: "bi-graph-up-arrow", system: true } // <-- Add this
   ];
 }
 function getFolders() {
@@ -222,6 +223,10 @@ function toggleFavorite(pw, folderId) {
 
 function renderDetails() {
   const pane = document.getElementById('detailPane');
+  if (selectedFolder === "watchtower") {
+    renderWatchtower(pane);
+    return;
+  }
   if (addEditMode === "add") {
     renderAddEditForm();
     return;
@@ -473,6 +478,26 @@ function renderAll() {
     getFolders().find(f => f.id === selectedFolder)?.name || "All Items";
   document.getElementById('currentUser').textContent = CURRENT_USER ? `@${CURRENT_USER}` : "";
   document.getElementById('searchInput').value = "";
+
+  // Watchtower full-width logic
+  const appList = document.querySelector('.app-list');
+  const appDetail = document.querySelector('.app-detail');
+  const listTopBar = document.getElementById('listTopBar');
+  const detailTopBar = document.getElementById('detailTopBar');
+  const detailPane = document.getElementById('detailPane');
+  if (selectedFolder === "watchtower") {
+    appList.style.display = "none";
+    appDetail.classList.add('watchtower-full');
+    if (listTopBar) listTopBar.style.display = "none";
+    if (detailTopBar) detailTopBar.style.display = "none";
+    if (detailPane) detailPane.classList.add('no-top-padding');
+  } else {
+    appList.style.display = "";
+    appDetail.classList.remove('watchtower-full');
+    if (listTopBar) listTopBar.style.display = "";
+    if (detailTopBar) detailTopBar.style.display = "";
+    if (detailPane) detailPane.classList.remove('no-top-padding');
+  }
 }
 
 // --- Event handlers ---
@@ -754,4 +779,88 @@ document.getElementById('recoveryForm').onsubmit = function(e) {
     document.getElementById('recoveryOverlay').classList.add('d-none');
     document.getElementById('authOverlay').classList.remove('d-none');
   });
-};
+}
+
+// Simple password strength estimator
+function getPasswordStrength(pw) {
+  if (!pw) return 0;
+  let score = 0;
+  if (pw.length >= 12) score++;
+  if (/[A-Z]/.test(pw)) score++;
+  if (/[a-z]/.test(pw)) score++;
+  if (/[0-9]/.test(pw)) score++;
+  if (/[^A-Za-z0-9]/.test(pw)) score++;
+  return score; // 0-5
+}
+
+function renderWatchtower(pane) {
+  // Gather all passwords
+  let allPwds = [];
+  getFolders().forEach(f => {
+    if (!f.system || f.id === "all" || f.id === "favorites") {
+      allPwds = allPwds.concat(getPasswords(f.id));
+    }
+  });
+
+  // Analyze
+  let stats = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0, 0: 0 };
+  let reused = 0;
+  let pwSet = new Set();
+  let weak = 0;
+
+  allPwds.forEach(pw => {
+    let realPw = decrypt(pw.password);
+    let strength = getPasswordStrength(realPw);
+    stats[strength]++;
+    if (strength <= 2) weak++;
+    if (pwSet.has(realPw)) reused++;
+    pwSet.add(realPw);
+  });
+
+  let total = allPwds.length;
+  let bar = '';
+  for (let i = 5; i >= 0; i--) {
+    if (stats[i]) {
+      let color = i >= 4 ? 'bg-success' : i === 3 ? 'bg-warning' : 'bg-danger';
+      bar += `<div class="${color}" style="display:inline-block;width:${(stats[i]/(total||1))*100}%;height:22px"></div>`;
+    }
+  }
+
+  pane.innerHTML = `
+    <div class="watchtower-container mx-auto" style="max-width:900px;">
+      <div class="mb-4">
+        <h4 class="mb-3"><i class="bi bi-graph-up-arrow"></i> Watchtower</h4>
+        <div class="mb-2">Overall Password Strength</div>
+        <div style="border-radius:6px;overflow:hidden;border:1px solid #ddd;">${bar}</div>
+        <div class="mt-2 small">
+          <span class="badge bg-success">Strong: ${stats[5] + stats[4]}</span>
+          <span class="badge bg-warning text-dark">Medium: ${stats[3]}</span>
+          <span class="badge bg-danger">Weak: ${stats[2] + stats[1] + stats[0]}</span>
+        </div>
+      </div>
+      <div class="row g-3">
+        <div class="col-12 col-md-4">
+          <div class="card p-3">
+            <div class="fs-2">${weak}</div>
+            <div>Weak Passwords</div>
+          </div>
+        </div>
+        <div class="col-12 col-md-4">
+          <div class="card p-3">
+            <div class="fs-2">${reused}</div>
+            <div>Reused Passwords</div>
+          </div>
+        </div>
+        <div class="col-12 col-md-4">
+          <div class="card p-3">
+            <div class="fs-2">${total}</div>
+            <div>Total Passwords</div>
+          </div>
+        </div>
+      </div>
+      <div class="mt-4 small text-muted">
+        <i class="bi bi-info-circle"></i> Passwords are analyzed locally and never leave your device.
+      </div>
+    </div>
+  `;
+}
