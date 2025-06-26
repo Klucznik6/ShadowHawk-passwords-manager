@@ -15,16 +15,33 @@ function hashPassword(password) {
 }
 function getUsers() { return JSON.parse(localStorage.getItem(USERS_KEY) || "{}"); }
 function saveUsers(u) { localStorage.setItem(USERS_KEY, JSON.stringify(u)); }
+function generateRecoveryCode() {
+  // 12 random words or a long hex string
+  const words = [];
+  for (let i = 0; i < 12; i++) {
+    words.push(Math.random().toString(36).slice(2, 6));
+  }
+  return words.join('-');
+}
 function registerUser(username, password) {
   let users = getUsers();
   if (users[username]) return "Username already exists";
   const encKey = CryptoJS.lib.WordArray.random(32).toString(CryptoJS.enc.Hex);
-  users[username] = { passwordHash: hashPassword(password), encKey };
+  const recoveryCode = generateRecoveryCode();
+  const recoveryHash = hashPassword(recoveryCode);
+  users[username] = { passwordHash: hashPassword(password), encKey, recoveryHash };
   saveUsers(users);
   localStorage.setItem(getEncKeyKey(username), encKey);
   localStorage.setItem(LOGGED_IN_KEY, username);
   CURRENT_USER = username;
   localStorage.setItem(getFoldersKey(username), JSON.stringify(defaultFolders()));
+  // Show recovery code to user
+  showInfoModal(
+    "Your recovery code (write it down and keep it safe):\n\n" +
+    recoveryCode +
+    "\n\nYou will need this to reset your password if you forget it.",
+    () => {}
+  );
   return null;
 }
 function loginUser(username, password) {
@@ -695,3 +712,45 @@ function importPasswords(json) {
     showInfoModal("Import failed: " + (e.message || e));
   }
 }
+
+// Show recovery overlay
+document.getElementById('forgotPwLink').onclick = function(e) {
+  e.preventDefault();
+  document.getElementById('authOverlay').classList.add('d-none');
+  document.getElementById('recoveryOverlay').classList.remove('d-none');
+  document.getElementById('recoveryForm').reset();
+  document.getElementById('recoveryError').classList.add('d-none');
+};
+
+document.getElementById('backToLogin').onclick = function(e) {
+  e.preventDefault();
+  document.getElementById('recoveryOverlay').classList.add('d-none');
+  document.getElementById('authOverlay').classList.remove('d-none');
+};
+
+document.getElementById('recoveryForm').onsubmit = function(e) {
+  e.preventDefault();
+  const username = document.getElementById('recoveryUsername').value.trim();
+  const code = document.getElementById('recoveryCode').value.trim();
+  const newPw = document.getElementById('newPassword').value;
+  let users = getUsers();
+  let errDiv = document.getElementById('recoveryError');
+  errDiv.classList.add('d-none');
+  if (!users[username]) {
+    errDiv.textContent = "Username not found.";
+    errDiv.classList.remove('d-none');
+    return;
+  }
+  if (users[username].recoveryHash !== hashPassword(code)) {
+    errDiv.textContent = "Invalid recovery code.";
+    errDiv.classList.remove('d-none');
+    return;
+  }
+  // Set new password
+  users[username].passwordHash = hashPassword(newPw);
+  saveUsers(users);
+  showInfoModal("Password reset successful! You can now log in.", () => {
+    document.getElementById('recoveryOverlay').classList.add('d-none');
+    document.getElementById('authOverlay').classList.remove('d-none');
+  });
+};
