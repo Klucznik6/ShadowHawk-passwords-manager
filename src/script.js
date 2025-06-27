@@ -642,13 +642,15 @@ function renderAll() {
   document.getElementById('currentUser').textContent = CURRENT_USER ? `@${CURRENT_USER}` : "";
   document.getElementById('searchInput').value = "";
 
-  // Watchtower full-width logic
+  // Full-width logic for special views (Watchtower and Recently Deleted)
   const appList = document.querySelector('.app-list');
   const appDetail = document.querySelector('.app-detail');
   const listTopBar = document.getElementById('listTopBar');
   const detailTopBar = document.getElementById('detailTopBar');
   const detailPane = document.getElementById('detailPane');
-  if (selectedFolder === "watchtower") {
+  
+  // Apply full-width layout for both Watchtower and Recently Deleted
+  if (selectedFolder === "watchtower" || selectedFolder === "deleted") {
     appList.style.display = "none";
     appDetail.classList.add('watchtower-full');
     if (listTopBar) listTopBar.style.display = "none";
@@ -1043,9 +1045,31 @@ function renderWatchtower(pane) {
 function renderDeletedItems(pane) {
   const deletedItems = getDeletedPasswords();
   
+  // Using the same container style as Watchtower
+  pane.innerHTML = `
+    <div class="watchtower-container mx-auto" style="max-width:900px;">
+      <div class="mb-4">
+        <h4 class="mb-3"><i class="bi bi-trash me-2"></i> Recently Deleted</h4>
+        <p class="text-muted">Items will be permanently deleted after 30 days</p>
+      </div>
+      
+      <div class="d-flex justify-content-end mb-3">
+        <button class="btn btn-outline-danger" id="emptyTrashBtn">
+          <i class="bi bi-trash"></i> Empty Trash
+        </button>
+      </div>
+      
+      <div id="deletedItemsContainer">
+        <!-- Items will be inserted here -->
+      </div>
+    </div>
+  `;
+  
+  const container = document.getElementById('deletedItemsContainer');
+  
   if (deletedItems.length === 0) {
-    pane.innerHTML = `
-      <div class="text-center text-muted mt-5">
+    container.innerHTML = `
+      <div class="text-center text-muted mt-5 py-5">
         <i class="bi bi-trash fs-1 mb-3"></i>
         <p>No deleted items to display.</p>
         <p class="small">Deleted items will be stored here for 30 days.</p>
@@ -1054,51 +1078,49 @@ function renderDeletedItems(pane) {
     return;
   }
   
-  let itemsHtml = '';
+  // Create cards with the same style as Watchtower cards
   deletedItems.forEach(item => {
     const deleteDate = new Date(item.deleteDate);
     const formattedDate = deleteDate.toLocaleDateString();
-    const daysAgo = Math.floor((Date.now() - item.deleteDate) / (1000 * 60 * 60 * 24));
-    const timeInfo = daysAgo === 0 ? 'Today' : daysAgo === 1 ? 'Yesterday' : `${daysAgo} days ago`;
+    const timeAgo = getTimeAgo(item.deleteDate);
     
-    itemsHtml += `
-      <div class="card mb-3" data-id="${item.id}">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <i class="pw-icon ${item.icon || 'bi bi-key'} me-3"></i>
-            <div class="flex-grow-1">
-              <h5 class="mb-0">${decrypt(item.title)}</h5>
-              <p class="text-muted small mb-0">${decrypt(item.username)}</p>
+    const card = document.createElement('div');
+    card.className = 'card shadow-sm mb-3';
+    card.setAttribute('data-id', item.id);
+    
+    card.innerHTML = `
+      <div class="card-body">
+        <div class="d-flex align-items-center">
+          <div class="me-3">
+            <i class="pw-icon ${item.icon || 'bi-key'}" style="font-size: 2.5rem;"></i>
+          </div>
+          <div class="flex-grow-1">
+            <h5 class="mb-0">${decrypt(item.title)}</h5>
+            <p class="text-muted small mb-1">${decrypt(item.username)}</p>
+            <div class="text-muted smaller">
+              Deleted: ${formattedDate} (${timeAgo})
             </div>
           </div>
-          <div class="text-muted small mt-2">
-            Deleted: ${formattedDate} (${timeInfo})
-          </div>
-          <div class="mt-3">
-            <button class="btn btn-sm btn-outline-primary restore-btn" data-id="${item.id}">
+          <div class="ms-3">
+            <button class="btn btn-sm btn-outline-primary restore-btn mb-2 w-100" data-id="${item.id}">
               <i class="bi bi-arrow-counterclockwise"></i> Restore
             </button>
-            <button class="btn btn-sm btn-outline-danger delete-permanently-btn" data-id="${item.id}">
-              <i class="bi bi-trash"></i> Delete Permanently
+            <button class="btn btn-sm btn-outline-danger delete-permanently-btn w-100" data-id="${item.id}">
+              <i class="bi bi-trash"></i> Delete
             </button>
           </div>
         </div>
       </div>
     `;
+    
+    container.appendChild(card);
   });
-
-  pane.innerHTML = `
-    <div class="mb-4">
-      <div class="d-flex justify-content-between align-items-center">
-        <h4><i class="bi bi-trash me-2"></i>Recently Deleted</h4>
-        <button class="btn btn-sm btn-outline-danger" id="emptyTrashBtn">
-          Empty Trash
-        </button>
-      </div>
-      <p class="text-muted small">Items will be permanently deleted after 30 days</p>
-    </div>
-    ${itemsHtml}
-  `;
+  
+  // Add info footer like in Watchtower
+  const footer = document.createElement('div');
+  footer.className = 'mt-4 small text-muted';
+  footer.innerHTML = `<i class="bi bi-info-circle"></i> Deleted items are stored locally and will be permanently removed after 30 days.`;
+  container.appendChild(footer);
   
   // Add event handlers
   document.querySelectorAll('.restore-btn').forEach(btn => {
@@ -1122,4 +1144,24 @@ function renderDeletedItems(pane) {
       renderAll();
     });
   };
+}
+
+// Helper function to format time ago in a user-friendly way
+function getTimeAgo(timestamp) {
+  const seconds = Math.floor((Date.now() - timestamp) / 1000);
+  
+  if (seconds < 60) return 'Just now';
+  
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
+  
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
+  
+  const days = Math.floor(hours / 24);
+  if (days === 1) return 'Yesterday';
+  if (days < 30) return `${days} days ago`;
+  
+  const months = Math.floor(days / 30);
+  return `${months} month${months !== 1 ? 's' : ''} ago`;
 }
