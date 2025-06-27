@@ -1048,12 +1048,11 @@ function renderDeletedItems(pane) {
   // Using the same container style as Watchtower
   pane.innerHTML = `
     <div class="watchtower-container mx-auto" style="max-width:900px;">
-      <div class="mb-4">
-        <h4 class="mb-3"><i class="bi bi-trash me-2"></i> Recently Deleted</h4>
-        <p class="text-muted">Items will be permanently deleted after 30 days</p>
-      </div>
-      
-      <div class="d-flex justify-content-end mb-3">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h4 class="mb-1"><i class="bi bi-trash me-2"></i> Recently Deleted</h4>
+          <p class="text-muted mb-0">Items will be permanently deleted after 30 days</p>
+        </div>
         <button class="btn btn-outline-danger" id="emptyTrashBtn">
           <i class="bi bi-trash"></i> Empty Trash
         </button>
@@ -1102,12 +1101,14 @@ function renderDeletedItems(pane) {
             </div>
           </div>
           <div class="ms-3">
-            <button class="btn btn-sm btn-outline-primary restore-btn mb-2 w-100" data-id="${item.id}">
-              <i class="bi bi-arrow-counterclockwise"></i> Restore
-            </button>
-            <button class="btn btn-sm btn-outline-danger delete-permanently-btn w-100" data-id="${item.id}">
-              <i class="bi bi-trash"></i> Delete
-            </button>
+            <div class="d-flex">
+              <button class="btn btn-sm btn-outline-primary restore-btn me-2" data-id="${item.id}">
+                <i class="bi bi-arrow-counterclockwise"></i> Restore
+              </button>
+              <button class="btn btn-sm btn-outline-danger delete-permanently-btn" data-id="${item.id}">
+                <i class="bi bi-trash"></i> Delete
+              </button>
+            </div>
           </div>
         </div>
       </div>
