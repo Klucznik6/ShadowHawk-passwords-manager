@@ -769,9 +769,15 @@ function exportPasswords() {
     folders,
     passwords: {}
   };
-  folders.forEach(f => {
+  
+  // Export passwords from all real folders
+  folders.filter(f => !f.system).forEach(f => {
     exportData.passwords[f.id] = getPasswords(f.id);
   });
+  
+  // Export unassigned passwords as well
+  exportData.passwords["unassigned"] = getPasswords("unassigned");
+  
   const blob = new Blob([JSON.stringify(exportData, null, 2)], {type: "application/json"});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -790,15 +796,26 @@ function importPasswords(json) {
   try {
     const data = typeof json === "string" ? JSON.parse(json) : json;
     if (!data.folders || !data.passwords) throw new Error("Invalid file");
+    
     // Merge folders (skip system folders)
     let folders = getFolders().filter(f => f.system);
     let customFolders = data.folders.filter(f => !f.system);
     folders = folders.concat(customFolders);
     saveFolders(folders);
+    
     // Import passwords for each folder
     for (const [folderId, pwds] of Object.entries(data.passwords)) {
-      savePasswords(folderId, pwds);
+      // Add folderId to each item for proper tracking
+      const updatedPwds = pwds.map(pw => ({...pw, folderId}));
+      
+      // Skip system folders except "unassigned"
+      if (folderId !== "unassigned" && folders.some(f => f.id === folderId && f.system)) {
+        continue;
+      }
+      
+      savePasswords(folderId, updatedPwds);
     }
+    
     renderAll();
     showInfoModal("Passwords imported successfully!");
   } catch (e) {
