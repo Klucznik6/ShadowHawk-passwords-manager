@@ -349,6 +349,11 @@ function renderAddEditForm(editId) {
     pw = findPasswordById(editId);
     if (!pw) return; // Not found
     originalFolderId = pw.folderId;
+    
+    // If the item is in the "unassigned" folder, show it as "all" for better UX
+    if (originalFolderId === "unassigned") {
+      originalFolderId = "all";
+    }
   } else {
     pw = {};
   }
@@ -358,28 +363,21 @@ function renderAddEditForm(editId) {
   // Get folders for the dropdown (exclude system folders)
   const folders = getFolders().filter(f => !f.system);
 
-  // Don't show "All Items" in the folder dropdown when editing
-  const allItemsOption = `<option value="all"${selectedFolder === "all" ? " selected" : ""}>All Items</option>`;
+  // Always show "All Items" option in the folder dropdown
+  const allItemsOption = `<option value="all">All Items</option>`;
 
-  // When editing, use the item's original folder
-  // When adding NEW item:
-  // 1. If in a regular folder, use that folder
-  // 2. If in a system folder (All/Favorites/Watchtower), find first available regular folder 
+  // Determine the selected folder in the dropdown:
   let selectedFolderId;
   
   if (editing) {
-    // Use original folder for editing
+    // When editing: Use the item's original folder (now handling "unassigned" as "all")
     selectedFolderId = originalFolderId;
   } else {
-    // For new items, use current folder if it's a regular folder
-    const currentFolder = getFolders().find(f => f.id === selectedFolder);
-    if (currentFolder && !currentFolder.system) {
-      // Current folder is a regular folder, use it
-      selectedFolderId = selectedFolder;
-    } else {
-      // Current folder is a system folder, use first available regular folder
-      selectedFolderId = folders[0]?.id || "";
-    }
+    // When adding NEW item:
+    // Always default to the current selected folder
+    selectedFolderId = (selectedFolder === "watchtower" || selectedFolder === "deleted") 
+      ? "all"  // For these system folders, default to All Items
+      : selectedFolder;
   }
 
   pane.innerHTML = `
@@ -440,23 +438,26 @@ function renderAddEditForm(editId) {
     let folderId = data.folder;
     let now = new Date().toLocaleString();
     
+    // Convert "all" folder selection to "unassigned" for storage
+    if (folderId === "all") {
+      folderId = "unassigned";
+    }
+    
     if (editing) {
-      // If All Items is selected, use "unassigned" for proper storage
-      if (folderId === "all") {
-        folderId = "unassigned";
-      }
+      // Get the real original folder ID (convert "all" display value back to "unassigned")
+      const realOriginalFolderId = originalFolderId === "all" ? "unassigned" : originalFolderId;
       
       // If original folder differs from selected folder, move the item
-      if (originalFolderId !== folderId) {
+      if (realOriginalFolderId !== folderId) {
         // Remove from original folder
-        let originalItems = getPasswords(originalFolderId);
+        let originalItems = getPasswords(realOriginalFolderId);
         let originalIdx = originalItems.findIndex(x => x.id === editId);
         if (originalIdx >= 0) {
           originalItems.splice(originalIdx, 1);
-          savePasswords(originalFolderId, originalItems);
+          savePasswords(realOriginalFolderId, originalItems);
         }
         
-        // Add to new folder (which could be "unassigned" for "All Items")
+        // Add to new folder
         let newItems = getPasswords(folderId);
         newItems.push({
           id: editId,
@@ -473,7 +474,7 @@ function renderAddEditForm(editId) {
         savePasswords(folderId, newItems);
       } else {
         // Just update in the original folder
-        let items = getPasswords(originalFolderId);
+        let items = getPasswords(realOriginalFolderId);
         let idx = items.findIndex(x => x.id === editId);
         if (idx >= 0) {
           items[idx].title = encrypt(data.title);
@@ -482,23 +483,18 @@ function renderAddEditForm(editId) {
           items[idx].notes = encrypt(data.notes || "");
           items[idx].updated = now;
           items[idx].icon = chosenIcon;
-          savePasswords(originalFolderId, items);
+          savePasswords(realOriginalFolderId, items);
         }
       }
       
       addEditMode = null;
       selectedPasswordId = editId;
       renderAll();
-      return;
     } else {
       // Add new password logic
       let newId = Math.random().toString(36).slice(2);
       
-      // Handle "All Items" selection for new items
-      if (folderId === "all") {
-        folderId = "unassigned";
-      }
-      
+      // Create item in the selected folder (which could be "unassigned" for "All Items")
       let items = getPasswords(folderId);
       items.push({
         id: newId,
@@ -579,14 +575,23 @@ function restoreDeletedPassword(id) {
   if (itemIndex >= 0) {
     const item = deletedItems[itemIndex];
     
-    // Find folder to restore to (or use first available folder if original doesn't exist)
+    // Find folder to restore to (or use "unassigned" if it was from "All Items")
     const folders = getFolders().filter(f => !f.system);
     let targetFolderId = item.originalFolderId;
+    let restorationMessage = 'original folder';
     
-    // Check if the original folder still exists
-    const folderExists = folders.some(f => f.id === targetFolderId);
-    if (!folderExists) {
-      targetFolderId = folders[0]?.id || "unassigned";
+    // Check if the original folder still exists (and wasn't "unassigned")
+    if (targetFolderId === "unassigned") {
+      // Item was in "All Items" view, keep it in "unassigned"
+      restorationMessage = 'All Items';
+    } else {
+      // For regular folders, check if they still exist
+      const folderExists = folders.some(f => f.id === targetFolderId);
+      if (!folderExists) {
+        // Original folder doesn't exist anymore, put in "unassigned" instead of first folder
+        targetFolderId = "unassigned";
+        restorationMessage = 'All Items (original folder no longer exists)';
+      }
     }
     
     // Add to target folder
@@ -603,7 +608,7 @@ function restoreDeletedPassword(id) {
     deletedItems.splice(itemIndex, 1);
     saveDeletedPasswords(deletedItems);
     
-    showInfoModal(`Item restored to ${folderExists ? 'original folder' : 'default folder'}.`);
+    showInfoModal(`Item restored to ${restorationMessage}.`);
     renderAll();
   }
 }
@@ -636,12 +641,7 @@ function renderAll() {
   cleanupOldDeletedItems(); // Call this at the beginning
   renderFolders();
   renderPasswordsList();
-  renderDetails();
-  document.getElementById('currentFolderName').textContent =
-    getFolders().find(f => f.id === selectedFolder)?.name || "All Items";
-  document.getElementById('currentUser').textContent = CURRENT_USER ? `@${CURRENT_USER}` : "";
-  document.getElementById('searchInput').value = "";
-
+  
   // Full-width logic for special views (Watchtower and Recently Deleted)
   const appList = document.querySelector('.app-list');
   const appDetail = document.querySelector('.app-detail');
@@ -651,18 +651,72 @@ function renderAll() {
   
   // Apply full-width layout for both Watchtower and Recently Deleted
   if (selectedFolder === "watchtower" || selectedFolder === "deleted") {
+    // Hide list and show detail pane in full width
     appList.style.display = "none";
     appDetail.classList.add('watchtower-full');
+    
+    // Hide top bars
     if (listTopBar) listTopBar.style.display = "none";
-    if (detailTopBar) detailTopBar.style.display = "none";
-    if (detailPane) detailPane.classList.add('no-top-padding');
+    if (detailTopBar) {
+      // Just hide it rather than trying to modify its structure
+      detailTopBar.style.display = "none";
+    }
+    
+    // Remove top padding
+    if (detailPane) {
+      detailPane.classList.add('no-top-padding');
+      detailPane.style.marginTop = "0";
+      detailPane.style.paddingTop = "0";
+    }
+    
+    // Add CSS to the head to completely hide the strip
+    let style = document.getElementById('special-view-style');
+    if (!style) {
+      style = document.createElement('style');
+      style.id = 'special-view-style';
+      document.head.appendChild(style);
+    }
+    
+    // This CSS targets the specific elements causing the strip
+    style.innerHTML = `
+      .app-main-row { margin-top: 0 !important; }
+      .container-fluid { padding-top: 0 !important; }
+      #mainLayout { padding: 0 !important; }
+      .app-detail { margin-top: 0 !important; }
+      #detailTopBar { height: 0 !important; padding: 0 !important; margin: 0 !important; overflow: hidden !important; }
+    `;
+    
+    // Wait a bit then render details to make sure layout is applied
+    setTimeout(renderDetails, 0);
   } else {
+    // Reset everything for normal views
     appList.style.display = "";
     appDetail.classList.remove('watchtower-full');
+    
     if (listTopBar) listTopBar.style.display = "";
     if (detailTopBar) detailTopBar.style.display = "";
-    if (detailPane) detailPane.classList.remove('no-top-padding');
+    
+    if (detailPane) {
+      detailPane.classList.remove('no-top-padding');
+      detailPane.style.marginTop = "";
+      detailPane.style.paddingTop = "";
+    }
+    
+    // Remove special CSS
+    let style = document.getElementById('special-view-style');
+    if (style) {
+      style.innerHTML = '';
+    }
+    
+    // Update the UI
+    renderDetails();
   }
+  
+  // Always update folder name and user info
+  document.getElementById('currentFolderName').textContent =
+    getFolders().find(f => f.id === selectedFolder)?.name || "All Items";
+  document.getElementById('currentUser').textContent = CURRENT_USER ? `@${CURRENT_USER}` : "";
+  document.getElementById('searchInput').value = "";
 }
 
 // --- Event handlers ---
