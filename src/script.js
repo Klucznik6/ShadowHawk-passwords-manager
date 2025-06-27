@@ -112,19 +112,29 @@ function getPasswords(folderId, searchTerm="") {
   let folders = getFolders();
   let allFolders = folders.filter(f => !f.system || f.id === "favorites" || f.id === "all").map(f => f.id);
   let out = [];
+  
   if (folderId === "all") {
-    for (const f of folders.filter(f=>!f.system || f.id==="favorites"||f.id==="all")) {
+    // Include all regular folders
+    for (const f of folders.filter(f=>!f.system)) {
       let items = JSON.parse(localStorage.getItem(getPasswordsKey(CURRENT_USER, f.id)) || "[]");
       out.push(...items.map(it => ({...it, folderId: f.id})));
     }
+    
+    // Also include unassigned items
+    let unassignedItems = JSON.parse(localStorage.getItem(getPasswordsKey(CURRENT_USER, "unassigned")) || "[]");
+    out.push(...unassignedItems.map(it => ({...it, folderId: "unassigned"})));
+    
   } else if (folderId === "favorites") {
-    for (const fId of allFolders) {
+    // Include favorites from all folders and unassigned
+    for (const fId of [...allFolders, "unassigned"]) {
       let items = JSON.parse(localStorage.getItem(getPasswordsKey(CURRENT_USER, fId)) || "[]");
       out.push(...items.filter(it => it.favorite).map(it => ({...it, folderId: fId})));
     }
   } else {
     out = JSON.parse(localStorage.getItem(getPasswordsKey(CURRENT_USER, folderId)) || "[]");
   }
+  
+  // Rest of your function stays the same
   if (searchTerm?.trim()) {
     const q = searchTerm.trim().toLowerCase();
     out = out.filter(pw =>
@@ -309,17 +319,30 @@ function renderDetails() {
 function renderAddEditForm(editId) {
   const pane = document.getElementById('detailPane');
   let editing = !!editId;
-  let pw = editing ? findPasswordById(editId) : {};
+  let pw = null;
+  let originalFolderId = null;
+  
+  if (editing) {
+    // Find the actual password and its real folder ID
+    pw = findPasswordById(editId);
+    if (!pw) return; // Not found
+    originalFolderId = pw.folderId;
+  } else {
+    pw = {};
+  }
+  
   let icon = pw.icon || pickIcon(0);
 
-  // Get folders for the dropdown (exclude system folders except "all")
+  // Get folders for the dropdown (exclude system folders)
   const folders = getFolders().filter(f => !f.system);
 
-  // Add "All Items" as a selectable option
+  // Don't show "All Items" in the folder dropdown when editing
   const allItemsOption = `<option value="all"${selectedFolder === "all" ? " selected" : ""}>All Items</option>`;
 
-  // Determine selected folder for the password
-  let selectedFolderId = editing ? pw.folderId : (selectedFolder === "favorites" ? (folders[0]?.id || "all") : selectedFolder);
+  // When editing, use the item's original folder. When adding, use current folder (or first real folder if in All Items/Favorites)
+  let selectedFolderId = editing ? originalFolderId : 
+    (selectedFolder === "all" || selectedFolder === "favorites" || selectedFolder === "watchtower" ? 
+      (folders[0]?.id || "") : selectedFolder);
 
   pane.innerHTML = `
     <form id="passwordForm" autocomplete="off">
@@ -377,40 +400,42 @@ function renderAddEditForm(editId) {
     let data = Object.fromEntries(new FormData(e.target).entries());
     if (!data.title || !data.username || !data.password || !data.folder) return;
     let folderId = data.folder;
-    let items = getPasswords(folderId);
     let now = new Date().toLocaleString();
-
-    // --- Uniqueness check ---
-    let allFolders = getFolders().map(f => f.id);
-    let isDuplicate = false;
-    for (let fId of allFolders) {
-      let pwds = getPasswords(fId);
-      if (pwds.some(pw =>
-        decrypt(pw.title) === data.title &&
-        (!editId || pw.id !== editId)
-      )) {
-        isDuplicate = true;
-        break;
-      }
-    }
-    if (isDuplicate) {
-      showInfoModal("A password with the same Title/Service already exists.");
-      return;
-    }
-    // --- End uniqueness check ---
-
+    
     if (editing) {
-      // Remove from old folder if folder changed
-      if (pw.folderId !== folderId) {
-        let oldItems = getPasswords(pw.folderId);
-        let idx = oldItems.findIndex(x => x.id === editId);
-        if (idx >= 0) {
-          oldItems.splice(idx, 1);
-          savePasswords(pw.folderId, oldItems);
+      // If All Items is selected, use "unassigned" for proper storage
+      if (folderId === "all") {
+        folderId = "unassigned";
+      }
+      
+      // If original folder differs from selected folder, move the item
+      if (originalFolderId !== folderId) {
+        // Remove from original folder
+        let originalItems = getPasswords(originalFolderId);
+        let originalIdx = originalItems.findIndex(x => x.id === editId);
+        if (originalIdx >= 0) {
+          originalItems.splice(originalIdx, 1);
+          savePasswords(originalFolderId, originalItems);
         }
-        pw = {}; // reset for new folder
-        items = getPasswords(folderId);
+        
+        // Add to new folder (which could be "unassigned" for "All Items")
+        let newItems = getPasswords(folderId);
+        newItems.push({
+          id: editId,
+          title: encrypt(data.title),
+          username: encrypt(data.username),
+          password: encrypt(data.password),
+          notes: encrypt(data.notes || ""),
+          created: pw.created,
+          updated: now,
+          favorite: pw.favorite || false,
+          icon: chosenIcon,
+          folderId: folderId
+        });
+        savePasswords(folderId, newItems);
       } else {
+        // Just update in the original folder
+        let items = getPasswords(originalFolderId);
         let idx = items.findIndex(x => x.id === editId);
         if (idx >= 0) {
           items[idx].title = encrypt(data.title);
@@ -419,45 +444,71 @@ function renderAddEditForm(editId) {
           items[idx].notes = encrypt(data.notes || "");
           items[idx].updated = now;
           items[idx].icon = chosenIcon;
-          savePasswords(folderId, items);
-          addEditMode = null;
-          selectedPasswordId = editId;
-          renderAll();
-          return;
+          savePasswords(originalFolderId, items);
         }
       }
+      
+      addEditMode = null;
+      selectedPasswordId = editId;
+      renderAll();
+      return;
+    } else {
+      // Add new password logic
+      let newId = Math.random().toString(36).slice(2);
+      
+      // Handle "All Items" selection for new items
+      if (folderId === "all") {
+        folderId = "unassigned";
+      }
+      
+      let items = getPasswords(folderId);
+      items.push({
+        id: newId,
+        title: encrypt(data.title),
+        username: encrypt(data.username),
+        password: encrypt(data.password),
+        notes: encrypt(data.notes || ""),
+        created: now,
+        updated: now,
+        favorite: false,
+        icon: chosenIcon,
+        folderId: folderId
+      });
+      savePasswords(folderId, items);
+      addEditMode = null;
+      selectedPasswordId = newId;
+      renderAll();
     }
-    // Add new password
-    let newId = Math.random().toString(36).slice(2);
-    items.push({
-      id: newId,
-      title: encrypt(data.title),
-      username: encrypt(data.username),
-      password: encrypt(data.password),
-      notes: encrypt(data.notes || ""),
-      created: now,
-      updated: now,
-      favorite: false,
-      icon: chosenIcon
-    });
-    savePasswords(folderId, items);
-    addEditMode = null;
-    selectedPasswordId = newId;
-    selectedFolder = folderId;
-    renderAll();
   };
 }
 
 function findPasswordById(id) {
-  let folders = getFolders();
-  for (let f of folders) {
-    let items = getPasswords(f.id);
-    let found = items.find(x => x.id === id);
+  // Check current folder first
+  if (selectedFolder !== "all" && selectedFolder !== "favorites" && selectedFolder !== "watchtower") {
+    const folderItems = getPasswords(selectedFolder);
+    const found = folderItems.find(p => p.id === id);
     if (found) {
-      found.folderId = f.id;
-      return found;
+      return { ...found, folderId: selectedFolder };
     }
   }
+  
+  // Then check all regular folders
+  const folders = getFolders().filter(f => !f.system);
+  for (const folder of folders) {
+    const items = getPasswords(folder.id);
+    const found = items.find(p => p.id === id);
+    if (found) {
+      return { ...found, folderId: folder.id };
+    }
+  }
+  
+  // Finally check the special "unassigned" folder for "All Items"
+  const unassignedItems = getPasswords("unassigned");
+  const foundUnassigned = unassignedItems.find(p => p.id === id);
+  if (foundUnassigned) {
+    return { ...foundUnassigned, folderId: "unassigned" };
+  }
+  
   return null;
 }
 
@@ -794,13 +845,8 @@ function getPasswordStrength(pw) {
 }
 
 function renderWatchtower(pane) {
-  // Gather all passwords
-  let allPwds = [];
-  getFolders().forEach(f => {
-    if (!f.system || f.id === "all" || f.id === "favorites") {
-      allPwds = allPwds.concat(getPasswords(f.id));
-    }
-  });
+  // Gather only passwords from "All Items"
+  let allPwds = getPasswords("all");
 
   // Analyze
   let stats = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0, 0: 0 };
