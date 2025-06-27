@@ -68,6 +68,9 @@ function logoutUser() {
 function getFoldersKey(username) { return `pmx_folders_${username}`; }
 function getPasswordsKey(username, folderId) { return `pmx_pwds_${username}_${folderId}`; }
 function getEncKeyKey(username) { return `pmx_enckey_${username}`; }
+function getDeletedPasswordsKey(username) { 
+  return `pmx_deleted_${username}`; 
+}
 function getEncryptionKey() {
   if (!CURRENT_USER) return "";
   let key = localStorage.getItem(getEncKeyKey(CURRENT_USER));
@@ -91,7 +94,8 @@ function defaultFolders() {
   return [
     { id: "all", name: "All Items", icon: "bi-shield-lock-fill", system: true },
     { id: "favorites", name: "Favorites", icon: "bi-star-fill", system: true },
-    { id: "watchtower", name: "Watchtower", icon: "bi-graph-up-arrow", system: true } // <-- Add this
+    { id: "watchtower", name: "Watchtower", icon: "bi-graph-up-arrow", system: true },
+    { id: "deleted", name: "Recently Deleted", icon: "bi-trash", system: true } // Add Recently Deleted folder
   ];
 }
 function getFolders() {
@@ -144,9 +148,20 @@ function getPasswords(folderId, searchTerm="") {
   }
   return out;
 }
+function getDeletedPasswords() {
+  if (!CURRENT_USER) return [];
+  const key = getDeletedPasswordsKey(CURRENT_USER);
+  const items = JSON.parse(localStorage.getItem(key) || "[]");
+  // Sort by deleteDate descending (newest first)
+  return items.sort((a, b) => b.deleteDate - a.deleteDate);
+}
 function savePasswords(folderId, items) {
   if (!CURRENT_USER) return;
   localStorage.setItem(getPasswordsKey(CURRENT_USER, folderId), JSON.stringify(items));
+}
+function saveDeletedPasswords(items) {
+  if (!CURRENT_USER) return;
+  localStorage.setItem(getDeletedPasswordsKey(CURRENT_USER), JSON.stringify(items));
 }
 
 // --- UI state ---
@@ -233,10 +248,17 @@ function toggleFavorite(pw, folderId) {
 
 function renderDetails() {
   const pane = document.getElementById('detailPane');
+  
   if (selectedFolder === "watchtower") {
     renderWatchtower(pane);
     return;
   }
+  
+  if (selectedFolder === "deleted") {
+    renderDeletedItems(pane);
+    return;
+  }
+  
   if (addEditMode === "add") {
     renderAddEditForm();
     return;
@@ -529,15 +551,89 @@ function findPasswordById(id) {
 }
 
 function deletePassword(pw, folderId) {
+  // Remove from original folder
   let items = getPasswords(folderId);
   let idx = items.findIndex(x => x.id === pw.id);
   if (idx >= 0) {
+    const deletedItem = items[idx];
+    
+    // Add additional metadata for restore
+    deletedItem.originalFolderId = folderId;
+    deletedItem.deleteDate = Date.now();
+    
+    // Move to deleted items
+    const deletedItems = getDeletedPasswords();
+    deletedItems.push(deletedItem);
+    saveDeletedPasswords(deletedItems);
+    
+    // Remove from original folder
     items.splice(idx, 1);
     savePasswords(folderId, items);
   }
 }
 
+function restoreDeletedPassword(id) {
+  const deletedItems = getDeletedPasswords();
+  const itemIndex = deletedItems.findIndex(p => p.id === id);
+  
+  if (itemIndex >= 0) {
+    const item = deletedItems[itemIndex];
+    
+    // Find folder to restore to (or use first available folder if original doesn't exist)
+    const folders = getFolders().filter(f => !f.system);
+    let targetFolderId = item.originalFolderId;
+    
+    // Check if the original folder still exists
+    const folderExists = folders.some(f => f.id === targetFolderId);
+    if (!folderExists) {
+      targetFolderId = folders[0]?.id || "unassigned";
+    }
+    
+    // Add to target folder
+    const folderItems = getPasswords(targetFolderId);
+    
+    // Remove deleteDate and originalFolderId properties
+    const { deleteDate, originalFolderId, ...restoredItem } = item;
+    restoredItem.folderId = targetFolderId;
+    
+    folderItems.push(restoredItem);
+    savePasswords(targetFolderId, folderItems);
+    
+    // Remove from deleted items
+    deletedItems.splice(itemIndex, 1);
+    saveDeletedPasswords(deletedItems);
+    
+    showInfoModal(`Item restored to ${folderExists ? 'original folder' : 'default folder'}.`);
+    renderAll();
+  }
+}
+
+function permanentlyDeletePassword(id) {
+  showConfirmModal("Permanently delete this item?", () => {
+    const deletedItems = getDeletedPasswords();
+    const updatedItems = deletedItems.filter(p => p.id !== id);
+    saveDeletedPasswords(updatedItems);
+    renderAll();
+  });
+}
+
+function cleanupOldDeletedItems() {
+  if (!CURRENT_USER) return;
+  
+  const deletedItems = getDeletedPasswords();
+  const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+  
+  const updatedItems = deletedItems.filter(item => item.deleteDate > thirtyDaysAgo);
+  
+  // If items were removed, save the updated list
+  if (updatedItems.length !== deletedItems.length) {
+    saveDeletedPasswords(updatedItems);
+  }
+}
+
+// Update the renderAll function to run cleanup
 function renderAll() {
+  cleanupOldDeletedItems(); // Call this at the beginning
   renderFolders();
   renderPasswordsList();
   renderDetails();
@@ -942,4 +1038,88 @@ function renderWatchtower(pane) {
       </div>
     </div>
   `;
+}
+
+function renderDeletedItems(pane) {
+  const deletedItems = getDeletedPasswords();
+  
+  if (deletedItems.length === 0) {
+    pane.innerHTML = `
+      <div class="text-center text-muted mt-5">
+        <i class="bi bi-trash fs-1 mb-3"></i>
+        <p>No deleted items to display.</p>
+        <p class="small">Deleted items will be stored here for 30 days.</p>
+      </div>
+    `;
+    return;
+  }
+  
+  let itemsHtml = '';
+  deletedItems.forEach(item => {
+    const deleteDate = new Date(item.deleteDate);
+    const formattedDate = deleteDate.toLocaleDateString();
+    const daysAgo = Math.floor((Date.now() - item.deleteDate) / (1000 * 60 * 60 * 24));
+    const timeInfo = daysAgo === 0 ? 'Today' : daysAgo === 1 ? 'Yesterday' : `${daysAgo} days ago`;
+    
+    itemsHtml += `
+      <div class="card mb-3" data-id="${item.id}">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <i class="pw-icon ${item.icon || 'bi bi-key'} me-3"></i>
+            <div class="flex-grow-1">
+              <h5 class="mb-0">${decrypt(item.title)}</h5>
+              <p class="text-muted small mb-0">${decrypt(item.username)}</p>
+            </div>
+          </div>
+          <div class="text-muted small mt-2">
+            Deleted: ${formattedDate} (${timeInfo})
+          </div>
+          <div class="mt-3">
+            <button class="btn btn-sm btn-outline-primary restore-btn" data-id="${item.id}">
+              <i class="bi bi-arrow-counterclockwise"></i> Restore
+            </button>
+            <button class="btn btn-sm btn-outline-danger delete-permanently-btn" data-id="${item.id}">
+              <i class="bi bi-trash"></i> Delete Permanently
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+
+  pane.innerHTML = `
+    <div class="mb-4">
+      <div class="d-flex justify-content-between align-items-center">
+        <h4><i class="bi bi-trash me-2"></i>Recently Deleted</h4>
+        <button class="btn btn-sm btn-outline-danger" id="emptyTrashBtn">
+          Empty Trash
+        </button>
+      </div>
+      <p class="text-muted small">Items will be permanently deleted after 30 days</p>
+    </div>
+    ${itemsHtml}
+  `;
+  
+  // Add event handlers
+  document.querySelectorAll('.restore-btn').forEach(btn => {
+    btn.onclick = (e) => {
+      e.preventDefault();
+      restoreDeletedPassword(btn.dataset.id);
+    };
+  });
+  
+  document.querySelectorAll('.delete-permanently-btn').forEach(btn => {
+    btn.onclick = (e) => {
+      e.preventDefault();
+      permanentlyDeletePassword(btn.dataset.id);
+    };
+  });
+  
+  document.getElementById('emptyTrashBtn').onclick = (e) => {
+    e.preventDefault();
+    showConfirmModal("Permanently delete all items in trash?", () => {
+      saveDeletedPasswords([]);
+      renderAll();
+    });
+  };
 }
