@@ -339,10 +339,26 @@ function renderAddEditForm(editId) {
   // Don't show "All Items" in the folder dropdown when editing
   const allItemsOption = `<option value="all"${selectedFolder === "all" ? " selected" : ""}>All Items</option>`;
 
-  // When editing, use the item's original folder. When adding, use current folder (or first real folder if in All Items/Favorites)
-  let selectedFolderId = editing ? originalFolderId : 
-    (selectedFolder === "all" || selectedFolder === "favorites" || selectedFolder === "watchtower" ? 
-      (folders[0]?.id || "") : selectedFolder);
+  // When editing, use the item's original folder
+  // When adding NEW item:
+  // 1. If in a regular folder, use that folder
+  // 2. If in a system folder (All/Favorites/Watchtower), find first available regular folder 
+  let selectedFolderId;
+  
+  if (editing) {
+    // Use original folder for editing
+    selectedFolderId = originalFolderId;
+  } else {
+    // For new items, use current folder if it's a regular folder
+    const currentFolder = getFolders().find(f => f.id === selectedFolder);
+    if (currentFolder && !currentFolder.system) {
+      // Current folder is a regular folder, use it
+      selectedFolderId = selectedFolder;
+    } else {
+      // Current folder is a system folder, use first available regular folder
+      selectedFolderId = folders[0]?.id || "";
+    }
+  }
 
   pane.innerHTML = `
     <form id="passwordForm" autocomplete="off">
