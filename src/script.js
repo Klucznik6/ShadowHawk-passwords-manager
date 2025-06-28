@@ -860,10 +860,23 @@ function showInfoModal(message, onOk) {
 
 // --- Theme persistence
 function setTheme(theme) {
-  document.body.classList.remove('theme-light', 'theme-dark');
-  document.body.classList.add('theme-' + theme);
+  document.documentElement.setAttribute('data-bs-theme', theme);
   localStorage.setItem('pmx_theme', theme);
+  
+  // Update button states
+  if (theme === 'light') {
+    document.getElementById('themeLight').classList.remove('btn-outline-primary');
+    document.getElementById('themeLight').classList.add('btn-primary');
+    document.getElementById('themeDark').classList.remove('btn-dark');
+    document.getElementById('themeDark').classList.add('btn-outline-dark');
+  } else {
+    document.getElementById('themeLight').classList.remove('btn-primary');
+    document.getElementById('themeLight').classList.add('btn-outline-primary');
+    document.getElementById('themeDark').classList.remove('btn-outline-dark');
+    document.getElementById('themeDark').classList.add('btn-dark');
+  }
 }
+
 function loadTheme() {
   let theme = localStorage.getItem('pmx_theme');
   if (!theme) {
@@ -871,6 +884,7 @@ function loadTheme() {
     theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   }
   setTheme(theme);
+  
   // Listen for system theme changes
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
     if (!localStorage.getItem('pmx_theme')) {
@@ -1059,38 +1073,39 @@ function renderWatchtower(pane) {
 
   pane.innerHTML = `
     <div class="watchtower-container mx-auto" style="max-width:900px;">
-      <div class="mb-4">
-        <h4 class="mb-3"><i class="bi bi-graph-up-arrow"></i> Watchtower</h4>
-        <div class="mb-2">Overall Password Strength</div>
-        <div style="border-radius:6px;overflow:hidden;border:1px solid #ddd;">${bar}</div>
-        <div class="mt-2 small">
-          <span class="badge bg-success">Strong: ${stats[5] + stats[4]}</span>
-          <span class="badge bg-warning text-dark">Medium: ${stats[3]}</span>
+      <div class="mb-5">
+        <h4 class="mb-3"><i class="bi bi-graph-up-arrow me-2"></i> Watchtower</h4>
+        <div class="mb-2 fw-medium">Overall Password Strength</div>
+        <div style="border-radius:8px;overflow:hidden;border:1px solid var(--border-color);">${bar}</div>
+        <div class="mt-3">
+          <span class="badge bg-success me-1">Strong: ${stats[5] + stats[4]}</span>
+          <span class="badge bg-warning text-dark me-1">Medium: ${stats[3]}</span>
           <span class="badge bg-danger">Weak: ${stats[2] + stats[1] + stats[0]}</span>
         </div>
       </div>
-      <div class="row g-3">
+      <div class="row g-4">
         <div class="col-12 col-md-4">
-          <div class="card p-3">
-            <div class="fs-2">${weak}</div>
-            <div>Weak Passwords</div>
+          <div class="card p-4 text-center">
+            <div class="fs-1 fw-bold mb-2">${weak}</div>
+            <div class="text-secondary">Weak Passwords</div>
           </div>
         </div>
         <div class="col-12 col-md-4">
-          <div class="card p-3">
-            <div class="fs-2">${reused}</div>
-            <div>Reused Passwords</div>
+          <div class="card p-4 text-center">
+            <div class="fs-1 fw-bold mb-2">${reused}</div>
+            <div class="text-secondary">Reused Passwords</div>
           </div>
         </div>
         <div class="col-12 col-md-4">
-          <div class="card p-3">
-            <div class="fs-2">${total}</div>
-            <div>Total Passwords</div>
+          <div class="card p-4 text-center">
+            <div class="fs-1 fw-bold mb-2">${total}</div>
+            <div class="text-secondary">Total Passwords</div>
           </div>
         </div>
       </div>
-      <div class="mt-4 small text-muted">
-        <i class="bi bi-info-circle"></i> Passwords are analyzed locally and never leave your device.
+      <div class="mt-5 text-secondary d-flex align-items-center">
+        <i class="bi bi-shield-check me-2"></i> 
+        <span>Passwords are analyzed locally and never leave your device.</span>
       </div>
     </div>
   `;
@@ -1105,7 +1120,7 @@ function renderDeletedItems(pane) {
       <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
           <h4 class="mb-1"><i class="bi bi-trash me-2"></i> Recently Deleted</h4>
-          <p class="text-muted mb-0">Items will be permanently deleted after 30 days</p>
+          <p class="text-secondary mb-0">Items will be permanently deleted after 30 days</p>
         </div>
         <button class="btn btn-outline-danger" id="emptyTrashBtn">
           <i class="bi bi-trash"></i> Empty Trash
@@ -1122,8 +1137,8 @@ function renderDeletedItems(pane) {
   
   if (deletedItems.length === 0) {
     container.innerHTML = `
-      <div class="text-center text-muted mt-5 py-5">
-        <i class="bi bi-trash fs-1 mb-3"></i>
+      <div class="text-center text-secondary mt-5 py-5">
+        <i class="bi bi-trash fs-1 mb-3 opacity-50"></i>
         <p>No deleted items to display.</p>
         <p class="small">Deleted items will be stored here for 30 days.</p>
       </div>
@@ -1144,14 +1159,14 @@ function renderDeletedItems(pane) {
     card.innerHTML = `
       <div class="card-body">
         <div class="d-flex align-items-center">
-          <div class="me-3">
+          <div class="me-4">
             <i class="pw-icon ${item.icon || 'bi-key'}" style="font-size: 2.5rem;"></i>
           </div>
           <div class="flex-grow-1">
             <h5 class="mb-0">${decrypt(item.title)}</h5>
-            <p class="text-muted small mb-1">${decrypt(item.username)}</p>
-            <div class="text-muted smaller">
-              Deleted: ${formattedDate} (${timeAgo})
+            <p class="text-secondary small mb-1">${decrypt(item.username)}</p>
+            <div class="text-secondary smaller">
+              Deleted: ${formattedDate} <span class="badge bg-light text-secondary">${timeAgo}</span>
             </div>
           </div>
           <div class="ms-3">
@@ -1173,7 +1188,7 @@ function renderDeletedItems(pane) {
   
   // Add info footer like in Watchtower
   const footer = document.createElement('div');
-  footer.className = 'mt-4 small text-muted';
+  footer.className = 'mt-4 small text-secondary';
   footer.innerHTML = `<i class="bi bi-info-circle"></i> Deleted items are stored locally and will be permanently removed after 30 days.`;
   container.appendChild(footer);
   
