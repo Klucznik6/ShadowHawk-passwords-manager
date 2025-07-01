@@ -94,8 +94,9 @@ function defaultFolders() {
   return [
     { id: "all", name: "All Items", icon: "bi-shield-lock-fill", system: true },
     { id: "favorites", name: "Favorites", icon: "bi-star-fill", system: true },
+    { id: "cards", name: "Payment Cards", icon: "bi-credit-card-fill", system: true }, // New folder for cards
     { id: "watchtower", name: "Watchtower", icon: "bi-graph-up-arrow", system: true },
-    { id: "deleted", name: "Recently Deleted", icon: "bi-trash", system: true } // Add Recently Deleted folder
+    { id: "deleted", name: "Recently Deleted", icon: "bi-trash", system: true }
   ];
 }
 function getFolders() {
@@ -212,12 +213,34 @@ function renderPasswordsList() {
     let li = document.createElement('li');
     li.className = "d-flex";
     if (pw.id === selectedPasswordId) li.classList.add("selected");
-    let icon = pickIcon(idx);
+    
+    // Different display for cards vs passwords
+    let icon, title, subtitle;
+    
+    if (pw.isCard) {
+      // This is a payment card
+      icon = pw.cardBrand === 'visa' ? 'bi-credit-card-fill' : 
+             pw.cardBrand === 'amex' ? 'bi-credit-card' : 
+             'bi-credit-card-2-front-fill';
+      
+      title = decrypt(pw.cardholderName);
+      
+      // Format card number for display (masked except last 4)
+      const cardNum = decrypt(pw.cardNumber);
+      const lastFour = cardNum.replace(/\s/g, '').slice(-4);
+      subtitle = `${pw.cardType === 'credit' ? 'Credit' : 'Debit'} •••• ${lastFour}`;
+    } else {
+      // Regular password
+      icon = pickIcon(idx);
+      title = decrypt(pw.title);
+      subtitle = decrypt(pw.username);
+    }
+    
     let fav = pw.favorite ? "" : "inactive";
     li.innerHTML = `<i class="pw-icon bi ${icon}"></i>
       <div class="flex-grow-1">
-        <div class="item-title">${decrypt(pw.title)}</div>
-        <div class="item-sub">${decrypt(pw.username)}</div>
+        <div class="item-title">${title}</div>
+        <div class="item-sub">${subtitle}</div>
       </div>
       <i class="pw-fav bi bi-star-fill ${fav}" title="Favorite"></i>`;
     li.onclick = (e) => {
@@ -229,7 +252,7 @@ function renderPasswordsList() {
     };
     li.querySelector('.pw-fav').onclick = (e) => {
       e.stopPropagation();
-      toggleFavorite(pw, pw.folderId||selectedFolder);
+      toggleFavorite(pw, pw.folderId || selectedFolder);
       renderPasswordsList();
       renderDetails();
     };
@@ -246,6 +269,7 @@ function toggleFavorite(pw, folderId) {
   }
 }
 
+// Modify the renderDetails function to add card support
 function renderDetails() {
   const pane = document.getElementById('detailPane');
   
@@ -263,259 +287,345 @@ function renderDetails() {
     renderAddEditForm();
     return;
   }
+  
+  if (addEditMode === "addCard") {
+    renderCardForm();
+    return;
+  }
+  
   if (addEditMode === "edit") {
-    renderAddEditForm(selectedPasswordId);
+    const item = findPasswordById(selectedPasswordId);
+    if (item && item.isCard) {
+      renderCardForm(selectedPasswordId);
+    } else {
+      renderAddEditForm(selectedPasswordId);
+    }
     return;
   }
+  
   if (!selectedPasswordId) {
-    pane.innerHTML = `<div class="text-center text-muted mt-5">
-      <i class="bi bi-arrow-left-right fs-1 mb-2"></i>
-      <p>Select a password or create a new one.</p>
-    </div>`;
+    // Empty state message - customize based on context
+    if (selectedFolder === "cards") {
+      pane.innerHTML = `<div class="text-center text-muted mt-5">
+        <i class="bi bi-credit-card-fill fs-1 mb-2"></i>
+        <p>Select a card or add a new one.</p>
+      </div>`;
+    } else {
+      pane.innerHTML = `<div class="text-center text-muted mt-5">
+        <i class="bi bi-arrow-left-right fs-1 mb-2"></i>
+        <p>Select a password or create a new one.</p>
+      </div>`;
+    }
     return;
   }
-  // Show details for selected password
-  let pw = findPasswordById(selectedPasswordId);
-  if (!pw) {
+  
+  // Show details for selected password or card
+  let item = findPasswordById(selectedPasswordId);
+  if (!item) {
     pane.innerHTML = `<div class="text-muted">Item not found.</div>`;
     return;
   }
-  let icon = pickIcon(0);
+  
+  // Check if this is a card or regular password
+  if (item.isCard) {
+    renderCardDetails(item);
+  } else {
+    // Original password details view
+    let icon = pickIcon(0);
+    pane.innerHTML = `
+      <div class="mb-4 text-center">
+        <i class="pw-icon bi ${icon}"></i>
+        <div class="fs-4 mt-2 fw-bold">${decrypt(item.title)}</div>
+        <div class="small text-muted">${decrypt(item.username)}</div>
+      </div>
+      <div class="mb-4">
+        <label class="form-label mt-2">Password</label>
+        <div class="input-group">
+          <input type="password" class="form-control" id="detailPassword" value="********" readonly>
+          <button class="btn btn-outline-secondary" id="showHidePwBtn" title="Show/Hide"><i class="bi bi-eye"></i></button>
+          <button class="btn btn-outline-secondary" id="copyPwBtn" title="Copy"><i class="bi bi-clipboard"></i></button>
+        </div>
+      </div>
+      <div class="mb-2">
+        <label class="form-label mt-2">Notes</label>
+        <textarea class="form-control" rows="2" readonly>${decrypt(item.notes||"")}</textarea>
+      </div>
+      <div class="pw-actions d-flex">
+        <button class="btn btn-outline-info" id="editPwBtn"><i class="bi bi-pencil"></i> Edit</button>
+        <button class="btn btn-outline-danger" id="deletePwBtn"><i class="bi bi-trash"></i> Delete</button>
+      </div>
+      <div class="text-muted small mt-3">
+        Created: ${item.created || "-"}
+        <br>Modified: ${item.updated || "-"}
+      </div>
+    `;
+    // Show/Hide password logic
+    const showBtn = document.getElementById('showHidePwBtn');
+    const pwInput = document.getElementById('detailPassword');
+    let shown = false;
+    showBtn.onclick = (e) => {
+      e.preventDefault();
+      shown = !shown;
+      pwInput.type = shown ? "text" : "password";
+      pwInput.value = shown ? decrypt(item.password) : "********";
+      showBtn.innerHTML = shown ? '<i class="bi bi-eye-slash"></i>' : '<i class="bi bi-eye"></i>';
+    };
+    document.getElementById('copyPwBtn').onclick = (e) => {
+      e.preventDefault();
+      navigator.clipboard.writeText(decrypt(item.password));
+    };
+    document.getElementById('editPwBtn').onclick = (e) => {
+      e.preventDefault();
+      addEditMode = "edit";
+      renderDetails();
+    };
+    document.getElementById('deletePwBtn').onclick = (e) => {
+      e.preventDefault();
+      showConfirmModal("Do you want to remove this element?", () => {
+        deletePassword(item, item.folderId || selectedFolder);
+        selectedPasswordId = null;
+        renderAll();
+      });
+    };
+  }
+}
+
+// Add a new function to render card details
+function renderCardDetails(card) {
+  const pane = document.getElementById('detailPane');
+  const cardholderName = decrypt(card.cardholderName);
+  const cardNumber = decrypt(card.cardNumber);
+  const expiryDate = decrypt(card.expiryDate);
+  const cvv = decrypt(card.cvv || "");
+  const cardType = card.cardType || "credit";
+  const cardBrand = card.cardBrand || "mastercard";
+  const cardColor = card.cardColor || "#000000";
+  
+  const isDarkColor = isColorDark(cardColor);
+  const textColor = isDarkColor ? '#ffffff' : '#000000';
+  
   pane.innerHTML = `
-    <div class="mb-4 text-center">
-      <i class="pw-icon bi ${icon}"></i>
-      <div class="fs-4 mt-2 fw-bold">${decrypt(pw.title)}</div>
-      <div class="small text-muted">${decrypt(pw.username)}</div>
-    </div>
     <div class="mb-4">
-      <label class="form-label mt-2">Password</label>
-      <div class="input-group">
-        <input type="password" class="form-control" id="detailPassword" value="********" readonly>
-        <button class="btn btn-outline-secondary" id="showHidePwBtn" title="Show/Hide"><i class="bi bi-eye"></i></button>
-        <button class="btn btn-outline-secondary" id="copyPwBtn" title="Copy"><i class="bi bi-clipboard"></i></button>
+      <div class="card-preview-container">
+        <div class="credit-card" style="
+          background: ${cardColor}; 
+          width: 100%; 
+          max-width: 360px; 
+          height: 220px; 
+          margin: 0 auto 2rem auto;
+          border-radius: 16px;
+          box-shadow: 0 12px 24px rgba(0,0,0,0.2);
+          position: relative; 
+          overflow: hidden;">
+          
+          <!-- Card background pattern -->
+          <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; 
+                      background-image: radial-gradient(circle at 80% 20%, 
+                      rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.2) 100%);
+                      opacity: 0.6;"></div>
+                      
+          <!-- Subtle grain texture overlay -->
+          <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; 
+                      background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIj4KICA8ZmlsdGVyIGlkPSJub2lzZSIgeD0iMCIgeT0iMCIgd2lkdGg9IjIwMCUiIGhlaWdodD0iMjAwJSI+CiAgICA8ZmVUdXJidWxlbmNlIHR5cGU9ImZyYWN0YWxOb2lzZSIgYmFzZUZyZXF1ZW5jeT0iMC42NSIgbnVtT2N0YXZlcz0iMyIgc3RpdGNoVGlsZXM9InN0aXRjaCIgc2VlZD0iMiIgcmVzdWx0PSJ0dXJidWxlbmNlIj48L2ZlVHVyYnVsZW5jZT4KICAgIDxmZUNvbG9yTWF0cml4IHR5cGU9InNhdHVyYXRlIiB2YWx1ZXM9IjAiIGluPSJ0dXJidWxlbmNlIiByZXN1bHQ9ImdyYWluIj48L2ZlQ29sb3JNYXRyaXg+CiAgICA8ZmVCbGVuZCBtb2RlPSJvdmVybGF5IiBpbj0iZ3JhaW4iIHJlc3VsdD0iZ3JhaW4iIHNyYzI9ImdyYWluIj48L2ZlQmxlbmQ+CiAgICA8ZmVCbGVuZCBtb2RlPSJvdmVybGF5IiBpbj0iZ3JhaW4iIHJlc3VsdD0iZ3JhaW4iPjwvZmVCbGVuZD4KICA8L2ZpbHRlcj4KICA8cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsdGVyPSJ1cmwoI25vaXNlKSIgb3BhY2l0eT0iMC4wOCI+PC9yZWN0Pgo8L3N2Zz4=');
+                      opacity: 0.4;"></div>
+          
+          <!-- Card content -->
+          <div style="position: relative; padding: 24px; height: 100%; 
+                      display: flex; flex-direction: column; justify-content: space-between;
+                      color: ${textColor};">
+            <!-- Top section -->
+            <div class="d-flex justify-content-between align-items-start">
+              <div style="font-size: 1.1rem; font-weight: 600; letter-spacing: 0.5px;">
+                ${cardType === 'debit' ? 'Debit Card' : 'Credit Card'}
+              </div>
+              
+              <!-- Small brand logo in top corner -->
+              <div>
+                ${renderCardLogo(cardBrand, textColor, 'small')}
+              </div>
+            </div>
+            
+            <!-- Chip section -->
+            <div class="d-flex align-items-center mt-2 mb-3">
+              <!-- EMV Chip -->
+              <div style="
+                width: 42px;
+                height: 32px; 
+                background: linear-gradient(135deg, #D4AF37 0%, #F4E5A7 50%, #D4AF37 100%); 
+                border-radius: 5px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 1px 2px rgba(0,0,0,0.2);">
+                <div style="
+                  width: 75%; 
+                  height: 73%; 
+                  background: linear-gradient(90deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.1) 100%);
+                  border-radius: 2px;
+                  display: flex;
+                  flex-direction: column;
+                  justify-content: space-between;
+                  padding: 2px 0;">
+                  <div style="height: 1.5px; background: rgba(0,0,0,0.3);"></div>
+                  <div style="height: 1.5px; background: rgba(0,0,0,0.3);"></div>
+                  <div style="height: 1.5px; background: rgba(0,0,0,0.3);"></div>
+                </div>
+              </div>
+              
+              <!-- NFC icon -->
+              <div style="margin-left: 10px; transform: rotate(90deg); opacity: 0.7;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 4C7.58172 4 4 7.58172 4 12C4 16.4183 7.58172 20 12 20C16.4183 20 20 16.4183 20 12" 
+                    stroke="${textColor}" stroke-width="2" stroke-linecap="round"/>
+                  <path d="M16 8C16 9.65685 14.6569 11 13 11C11.3431 11 10 9.65685 10 8C10 6.34315 11.3431 5 13 5" 
+                    stroke="${textColor}" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+              </div>
+            </div>
+            
+            <!-- Card number -->
+            <div style="position: relative;">
+              <div id="cardNumberDisplay" style="
+                font-family: 'Courier New', monospace; 
+                font-size: 1.5rem;
+                letter-spacing: 0.2rem;
+                font-weight: 500;
+                text-shadow: 0 1px 2px rgba(0,0,0,0.1);">
+                ${formatCardNumberForDisplay(cardNumber)}
+              </div>
+              <button id="toggleCardNumber" class="btn btn-sm position-absolute" 
+                     style="top: -10px; right: -10px; padding: 0.15rem 0.4rem; 
+                     background: rgba(255,255,255,0.2); border: none;">
+                <i class="bi bi-eye" style="color: ${textColor}; opacity: 0.8;"></i>
+              </button>
+            </div>
+            
+            <!-- Bottom section -->
+            <div class="d-flex justify-content-between align-items-end mt-3">
+              <!-- Cardholder info -->
+              <div>
+                <div style="font-size: 0.65rem; text-transform: uppercase; opacity: 0.7; margin-bottom: 5px; letter-spacing: 0.05rem;">
+                  CARD HOLDER
+                </div>
+                <div style="font-size: 1rem; font-weight: 500; letter-spacing: 0.05rem;">
+                  ${cardholderName}
+                </div>
+              </div>
+              
+              <!-- Expiry date -->
+              <div>
+                <div style="font-size: 0.65rem; text-transform: uppercase; opacity: 0.7; margin-bottom: 5px; letter-spacing: 0.05rem;">
+                  EXPIRES
+                </div>
+                <div style="font-size: 1rem; font-weight: 500;">
+                  ${expiryDate}
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Large brand logo in bottom right -->
+          <div style="position: absolute; bottom: 20px; right: 20px;">
+            ${renderCardLogo(cardBrand, textColor, 'large')}
+          </div>
+        </div>
+      </div>
+      
+      <!-- Card details -->
+      <div class="row mt-4 mb-3">
+        <div class="col-md-6">
+          <div class="mb-3">
+            <label class="form-label">CVV/CVC</label>
+            <div class="input-group">
+              <input type="password" class="form-control" id="detailCVV" value="***" readonly>
+              <button class="btn btn-outline-secondary" id="showHideCVV" title="Show/Hide">
+                <i class="bi bi-eye"></i>
+              </button>
+              <button class="btn btn-outline-secondary" id="copyCVV" title="Copy">
+                <i class="bi bi-clipboard"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="mb-3">
+        <label class="form-label">Notes</label>
+        <textarea class="form-control" rows="2" readonly>${decrypt(card.notes||"")}</textarea>
       </div>
     </div>
-    <div class="mb-2">
-      <label class="form-label mt-2">Notes</label>
-      <textarea class="form-control" rows="2" readonly>${decrypt(pw.notes||"")}</textarea>
-    </div>
+    
     <div class="pw-actions d-flex">
-      <button class="btn btn-outline-info" id="editPwBtn"><i class="bi bi-pencil"></i> Edit</button>
-      <button class="btn btn-outline-danger" id="deletePwBtn"><i class="bi bi-trash"></i> Delete</button>
+      <button class="btn btn-outline-info" id="editCardBtn"><i class="bi bi-pencil"></i> Edit</button>
+      <button class="btn btn-outline-danger" id="deleteCardBtn"><i class="bi bi-trash"></i> Delete</button>
     </div>
     <div class="text-muted small mt-3">
-      Created: ${pw.created || "-"}
-      <br>Modified: ${pw.updated || "-"}
+      Created: ${card.created || "-"}
+      <br>Modified: ${card.updated || "-"}
     </div>
   `;
-  // Show/Hide password logic
-  const showBtn = document.getElementById('showHidePwBtn');
-  const pwInput = document.getElementById('detailPassword');
-  let shown = false;
-  showBtn.onclick = (e) => {
-    e.preventDefault();
-    shown = !shown;
-    pwInput.type = shown ? "text" : "password";
-    pwInput.value = shown ? decrypt(pw.password) : "********";
-    showBtn.innerHTML = shown ? '<i class="bi bi-eye-slash"></i>' : '<i class="bi bi-eye"></i>';
+
+  // Toggle card number visibility
+  const toggleBtn = document.getElementById('toggleCardNumber');
+  const cardNumberElement = document.getElementById('cardNumberDisplay');
+  let numberShown = false;
+  
+  toggleBtn.onclick = (e) => {
+    numberShown = !numberShown;
+    if (numberShown) {
+      let formattedNum = formatCardNumberWithSpaces(cardNumber);
+      cardNumberElement.innerText = formattedNum || '0000 0000 0000 0000';
+      toggleBtn.innerHTML = `<i class="bi bi-eye-slash" style="color: ${textColor}; opacity: 0.8;"></i>`;
+    } else {
+      cardNumberElement.innerText = formatCardNumberForDisplay(cardNumber);
+      toggleBtn.innerHTML = `<i class="bi bi-eye" style="color: ${textColor}; opacity: 0.8;"></i>`;
+    }
   };
-  document.getElementById('copyPwBtn').onclick = (e) => {
-    e.preventDefault();
-    navigator.clipboard.writeText(decrypt(pw.password));
+  
+  // CVV show/hide
+  const cvvBtn = document.getElementById('showHideCVV');
+  const cvvInput = document.getElementById('detailCVV');
+  let cvvShown = false;
+  
+  cvvBtn.onclick = (e) => {
+    cvvShown = !cvvShown;
+    cvvInput.type = cvvShown ? "text" : "password";
+    cvvInput.value = cvvShown ? cvv : "***";
+    cvvBtn.innerHTML = cvvShown ? '<i class="bi bi-eye-slash"></i>' : '<i class="bi bi-eye"></i>';
   };
-  document.getElementById('editPwBtn').onclick = (e) => {
-    e.preventDefault();
+  
+  // Copy CVV
+  document.getElementById('copyCVV').onclick = (e) => {
+    navigator.clipboard.writeText(cvv);
+  };
+  
+  // Edit and Delete buttons
+  document.getElementById('editCardBtn').onclick = (e) => {
     addEditMode = "edit";
     renderDetails();
   };
-  document.getElementById('deletePwBtn').onclick = (e) => {
-    e.preventDefault();
-    showConfirmModal("Do you want to remove this element?", () => {
-      deletePassword(pw, pw.folderId || selectedFolder);
+  
+  document.getElementById('deleteCardBtn').onclick = (e) => {
+    showConfirmModal("Do you want to delete this card?", () => {
+      deletePassword(card, card.folderId || selectedFolder);
       selectedPasswordId = null;
       renderAll();
     });
   };
 }
 
-function renderAddEditForm(editId) {
-  const pane = document.getElementById('detailPane');
-  let editing = !!editId;
-  let pw = null;
-  let originalFolderId = null;
+// Helper function to determine if a color is dark or light
+function isColorDark(hexColor) {
+  // Convert hex to RGB
+  hexColor = hexColor.replace('#', '');
+  const r = parseInt(hexColor.substr(0, 2), 16);
+  const g = parseInt(hexColor.substr(2, 2), 16);
+  const b = parseInt(hexColor.substr(4, 2), 16);
   
-  if (editing) {
-    // Find the actual password and its real folder ID
-    pw = findPasswordById(editId);
-    if (!pw) return; // Not found
-    originalFolderId = pw.folderId;
-    
-    // If the item is in the "unassigned" folder, show it as "all" for better UX
-    if (originalFolderId === "unassigned") {
-      originalFolderId = "all";
-    }
-  } else {
-    pw = {};
-  }
-  
-  let icon = pw.icon || pickIcon(0);
-
-  // Get folders for the dropdown (exclude system folders)
-  const folders = getFolders().filter(f => !f.system);
-
-  // Always show "All Items" option in the folder dropdown
-  const allItemsOption = `<option value="all">All Items</option>`;
-
-  // Determine the selected folder in the dropdown:
-  let selectedFolderId;
-  
-  if (editing) {
-    // When editing: Use the item's original folder (now handling "unassigned" as "all")
-    selectedFolderId = originalFolderId;
-  } else {
-    // When adding NEW item:
-    // Always default to the current selected folder
-    selectedFolderId = (selectedFolder === "watchtower" || selectedFolder === "deleted") 
-      ? "all"  // For these system folders, default to All Items
-      : selectedFolder;
-  }
-
-  pane.innerHTML = `
-    <form id="passwordForm" autocomplete="off">
-      <div class="mb-3 text-center">
-        <button type="button" id="pwIconPickerBtn" class="btn btn-light border-0 p-0" style="background: none;">
-          <i class="pw-icon ${icon}" style="font-size:2.9em;"></i>
-        </button>
-      </div>
-      <div class="mb-3">
-        <label class="form-label">Folder</label>
-        <select class="form-select" name="folder" required>
-          ${allItemsOption}
-          ${folders.map(f => `<option value="${f.id}" ${f.id === selectedFolderId ? "selected" : ""}>${f.name}</option>`).join("")}
-        </select>
-      </div>
-      <div class="mb-3">
-        <label class="form-label">Title/Service</label>
-        <input type="text" class="form-control" name="title" value="${editing?decrypt(pw.title):""}" required>
-      </div>
-      <div class="mb-3">
-        <label class="form-label">Username/Email</label>
-        <input type="text" class="form-control" name="username" value="${editing?decrypt(pw.username):""}" required>
-      </div>
-      <div class="mb-3">
-        <label class="form-label">Password</label>
-        <input type="password" class="form-control" name="password" value="${editing?decrypt(pw.password):""}" required>
-      </div>
-      <div class="mb-3">
-        <label class="form-label">Notes</label>
-        <textarea class="form-control" name="notes" rows="2">${editing?decrypt(pw.notes||""):''}</textarea>
-      </div>
-      <div class="d-flex">
-        <button class="btn btn-success me-2" type="submit">${editing?"Save":"Add"}</button>
-        <button class="btn btn-outline-secondary" type="button" id="cancelAddEditBtn">Cancel</button>
-      </div>
-    </form>
-  `;
-
-  // Icon picker logic
-  let chosenIcon = icon;
-  document.getElementById('pwIconPickerBtn').onclick = (e) => {
-    e.preventDefault();
-    showIconPicker(chosenIcon, (newIcon) => {
-      chosenIcon = newIcon;
-      document.querySelector('#pwIconPickerBtn i').className = `pw-icon ${newIcon}`;
-    });
-  };
-
-  document.getElementById('cancelAddEditBtn').onclick = () => {
-    addEditMode = null;
-    renderDetails();
-  };
-  document.getElementById('passwordForm').onsubmit = (e) => {
-    e.preventDefault();
-    let data = Object.fromEntries(new FormData(e.target).entries());
-    if (!data.title || !data.username || !data.password || !data.folder) return;
-    let folderId = data.folder;
-    let now = new Date().toLocaleString();
-    
-    // Convert "all" folder selection to "unassigned" for storage
-    if (folderId === "all") {
-      folderId = "unassigned";
-    }
-    
-    if (editing) {
-      // Get the real original folder ID (convert "all" display value back to "unassigned")
-      const realOriginalFolderId = originalFolderId === "all" ? "unassigned" : originalFolderId;
-      
-      // If original folder differs from selected folder, move the item
-      if (realOriginalFolderId !== folderId) {
-        // Remove from original folder
-        let originalItems = getPasswords(realOriginalFolderId);
-        let originalIdx = originalItems.findIndex(x => x.id === editId);
-        if (originalIdx >= 0) {
-          originalItems.splice(originalIdx, 1);
-          savePasswords(realOriginalFolderId, originalItems);
-        }
-        
-        // Add to new folder
-        let newItems = getPasswords(folderId);
-        newItems.push({
-          id: editId,
-          title: encrypt(data.title),
-          username: encrypt(data.username),
-          password: encrypt(data.password),
-          notes: encrypt(data.notes || ""),
-          created: pw.created,
-          updated: now,
-          favorite: pw.favorite || false,
-          icon: chosenIcon,
-          folderId: folderId
-        });
-        savePasswords(folderId, newItems);
-      } else {
-        // Just update in the original folder
-        let items = getPasswords(realOriginalFolderId);
-        let idx = items.findIndex(x => x.id === editId);
-        if (idx >= 0) {
-          items[idx].title = encrypt(data.title);
-          items[idx].username = encrypt(data.username);
-          items[idx].password = encrypt(data.password);
-          items[idx].notes = encrypt(data.notes || "");
-          items[idx].updated = now;
-          items[idx].icon = chosenIcon;
-          savePasswords(realOriginalFolderId, items);
-        }
-      }
-      
-      addEditMode = null;
-      selectedPasswordId = editId;
-      renderAll();
-    } else {
-      // Add new password logic
-      let newId = Math.random().toString(36).slice(2);
-      
-      // Create item in the selected folder (which could be "unassigned" for "All Items")
-      let items = getPasswords(folderId);
-      items.push({
-        id: newId,
-        title: encrypt(data.title),
-        username: encrypt(data.username),
-        password: encrypt(data.password),
-        notes: encrypt(data.notes || ""),
-        created: now,
-        updated: now,
-        favorite: false,
-        icon: chosenIcon,
-        folderId: folderId
-      });
-      savePasswords(folderId, items);
-      addEditMode = null;
-      selectedPasswordId = newId;
-      renderAll();
-    }
-  };
+  // Calculate luminance
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance < 0.5; // Dark colors have luminance < 0.5
 }
-
 function findPasswordById(id) {
   // Check current folder first
   if (selectedFolder !== "all" && selectedFolder !== "favorites" && selectedFolder !== "watchtower") {
@@ -712,6 +822,14 @@ function renderAll() {
     renderDetails();
   }
   
+  // Customize the Add button based on current folder
+  const addButton = document.getElementById('addPasswordBtn');
+  if (selectedFolder === "cards") {
+    addButton.innerHTML = '<i class="bi bi-plus-lg"></i> New Card';
+  } else {
+    addButton.innerHTML = '<i class="bi bi-plus-lg"></i> New Item';
+  }
+  
   // Always update folder name and user info
   document.getElementById('currentFolderName').textContent =
     getFolders().find(f => f.id === selectedFolder)?.name || "All Items";
@@ -753,8 +871,14 @@ document.getElementById('addFolderBtn').onclick = () => {
   input.onblur = () => input.remove();
 };
 
+// Update the addPasswordBtn event handler to fix any issues
 document.getElementById('addPasswordBtn').onclick = () => {
-  addEditMode = "add";
+  // If we're in the cards folder, default to adding a card
+  if (selectedFolder === "cards") {
+    addEditMode = "addCard";
+  } else {
+    addEditMode = "add";
+  }
   selectedPasswordId = null;
   renderDetails();
 };
@@ -1234,4 +1358,586 @@ function getTimeAgo(timestamp) {
   
   const months = Math.floor(days / 30);
   return `${months} month${months !== 1 ? 's' : ''} ago`;
+}
+
+// Add this function after renderAddEditForm function
+function renderCardForm(editId) {
+  const pane = document.getElementById('detailPane');
+  let editing = !!editId;
+  let card = null;
+  
+  if (editing) {
+    card = findPasswordById(editId);
+    if (!card) return;
+  } else {
+    card = {};
+  }
+  
+  // Default values
+  const cardholderName = editing ? decrypt(card.cardholderName || "") : "";
+  const cardNumber = editing ? decrypt(card.cardNumber || "") : "";
+  const expiryDate = editing ? decrypt(card.expiryDate || "") : "";
+  const cvv = editing ? decrypt(card.cvv || "") : "";
+  const cardType = card.cardType || "credit";
+  const cardBrand = card.cardBrand || "mastercard";
+  const cardColor = card.cardColor || "#000000";
+  
+  // Calculate text color based on background
+  const isDarkColor = isColorDark(cardColor);
+  const textColor = isDarkColor ? '#ffffff' : '#000000';
+  
+  pane.innerHTML = `
+    <form id="cardForm" autocomplete="off">
+      <div class="mb-4 mt-2">
+        <!-- Improved card preview -->
+        <div class="card-preview-container mb-4">
+          <div class="credit-card" id="cardPreview" style="
+            background: ${cardColor}; 
+            width: 100%; 
+            max-width: 360px; 
+            height: 220px; 
+            margin: 0 auto 1.5rem auto;
+            border-radius: 16px;
+            box-shadow: 0 12px 24px rgba(0,0,0,0.2);
+            position: relative; 
+            overflow: hidden;">
+            
+            <!-- Card background pattern -->
+            <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; 
+                        background-image: radial-gradient(circle at 80% 20%, 
+                        rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.2) 100%);
+                        opacity: 0.6;"></div>
+                        
+            <!-- Subtle grain texture overlay -->
+            <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; 
+                        background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIj4KICA8ZmlsdGVyIGlkPSJub2lzZSIgeD0iMCIgeT0iMCIgd2lkdGg9IjIwMCUiIGhlaWdodD0iMjAwJSI+CiAgICA8ZmVUdXJidWxlbmNlIHR5cGU9ImZyYWN0YWxOb2lzZSIgYmFzZUZyZXF1ZW5jeT0iMC42NSIgbnVtT2N0YXZlcz0iMyIgc3RpdGNoVGlsZXM9InN0aXRjaCIgc2VlZD0iMiIgcmVzdWx0PSJ0dXJidWxlbmNlIj48L2ZlVHVyYnVsZW5jZT4KICAgIDxmZUNvbG9yTWF0cml4IHR5cGU9InNhdHVyYXRlIiB2YWx1ZXM9IjAiIGluPSJ0dXJidWxlbmNlIiByZXN1bHQ9ImdyYWluIj48L2ZlQ29sb3JNYXRyaXg+CiAgICA8ZmVCbGVuZCBtb2RlPSJvdmVybGF5IiBpbj0iZ3JhaW4iIHJlc3VsdD0iZ3JhaW4iIHNyYzI9ImdyYWluIj48L2ZlQmxlbmQ+CiAgICA8ZmVCbGVuZCBtb2RlPSJvdmVybGF5IiBpbj0iZ3JhaW4iIHJlc3VsdD0iZ3JhaW4iPjwvZmVCbGVuZD4KICA8L2ZpbHRlcj4KICA8cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsdGVyPSJ1cmwoI25vaXNlKSIgb3BhY2l0eT0iMC4wOCI+PC9yZWN0Pgo8L3N2Zz4=');
+                        opacity: 0.4;"></div>
+            
+            <!-- Card content -->
+            <div style="position: relative; padding: 24px; height: 100%; 
+                        display: flex; flex-direction: column; justify-content: space-between;
+                        color: ${textColor};">
+              <!-- Top section -->
+              <div class="d-flex justify-content-between align-items-start">
+                <div id="previewCardType" style="font-size: 1.1rem; font-weight: 600; letter-spacing: 0.5px;">
+                  ${cardType === 'debit' ? 'Debit Card' : 'Credit Card'}
+                </div>
+                
+                <!-- Small brand logo in top corner -->
+                <div id="previewSmallLogo">
+                  ${renderCardLogo(cardBrand, textColor, 'small')}
+                </div>
+              </div>
+              
+              <!-- Chip section -->
+              <div class="d-flex align-items-center mt-2 mb-3">
+                <!-- EMV Chip -->
+                <div style="
+                  width: 42px;
+                  height: 32px; 
+                  background: linear-gradient(135deg, #D4AF37 0%, #F4E5A7 50%, #D4AF37 100%); 
+                  border-radius: 5px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  box-shadow: 0 1px 2px rgba(0,0,0,0.2);">
+                  <div style="
+                    width: 75%; 
+                    height: 73%; 
+                    background: linear-gradient(90deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.1) 100%);
+                    border-radius: 2px;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: space-between;
+                    padding: 2px 0;">
+                    <div style="height: 1.5px; background: rgba(0,0,0,0.3);"></div>
+                    <div style="height: 1.5px; background: rgba(0,0,0,0.3);"></div>
+                    <div style="height: 1.5px; background: rgba(0,0,0,0.3);"></div>
+                  </div>
+                </div>
+                
+                <!-- NFC icon -->
+                <div style="margin-left: 10px; transform: rotate(90deg); opacity: 0.7;">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 4C7.58172 4 4 7.58172 4 12C4 16.4183 7.58172 20 12 20C16.4183 20 20 16.4183 20 12" 
+                      stroke="${textColor}" stroke-width="2" stroke-linecap="round"/>
+                    <path d="M16 8C16 9.65685 14.6569 11 13 11C11.3431 11 10 9.65685 10 8C10 6.34315 11.3431 5 13 5" 
+                      stroke="${textColor}" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                </div>
+              </div>
+              
+              <!-- Card number -->
+              <div>
+                <div id="previewCardNumber" style="
+                  font-family: 'Courier New', monospace; 
+                  font-size: 1.5rem;
+                  letter-spacing: 0.2rem;
+                  font-weight: 500;
+                  text-shadow: 0 1px 2px rgba(0,0,0,0.1);">
+                  ${formatCardNumberForDisplay(cardNumber || '0000 0000 0000 0000')}
+                </div>
+              </div>
+              
+              <!-- Bottom section -->
+              <div class="d-flex justify-content-between align-items-end mt-3">
+                <!-- Cardholder info -->
+                <div>
+                  <div style="font-size: 0.65rem; text-transform: uppercase; opacity: 0.7; margin-bottom: 5px; letter-spacing: 0.05rem;">
+                    CARD HOLDER
+                  </div>
+                  <div id="previewCardholderName" style="font-size: 1rem; font-weight: 500; letter-spacing: 0.05rem;">
+                    ${cardholderName || 'YOUR NAME'}
+                  </div>
+                </div>
+                
+                <!-- Expiry date -->
+                <div>
+                  <div style="font-size: 0.65rem; text-transform: uppercase; opacity: 0.7; margin-bottom: 5px; letter-spacing: 0.05rem;">
+                    EXPIRES
+                  </div>
+                  <div id="previewExpiryDate" style="font-size: 1rem; font-weight: 500;">
+                    ${expiryDate || 'MM/YY'}
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Large brand logo in bottom right -->
+            <div id="previewLargeLogo" style="position: absolute; bottom: 20px; right: 20px;">
+              ${renderCardLogo(cardBrand, textColor, 'large')}
+            </div>
+          </div>
+        </div>
+        
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Card Type</label>
+            <select class="form-select" name="cardType" id="cardTypeInput" required>
+              <option value="credit" ${cardType === 'credit' ? 'selected' : ''}>Credit Card</option>
+              <option value="debit" ${cardType === 'debit' ? 'selected' : ''}>Debit Card</option>
+            </select>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Card Brand</label>
+            <select class="form-select" name="cardBrand" id="cardBrandInput" required>
+              <option value="mastercard" ${cardBrand === 'mastercard' ? 'selected' : ''}>Mastercard</option>
+              <option value="visa" ${cardBrand === 'visa' ? 'selected' : ''}>Visa</option>
+              <option value="amex" ${cardBrand === 'amex' ? 'selected' : ''}>American Express</option>
+              <option value="other" ${cardBrand === 'other' ? 'selected' : ''}>Other</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="mb-3">
+          <label class="form-label">Card Color</label>
+          <input type="color" class="form-control form-control-color" name="cardColor" id="cardColorInput" 
+                 value="${cardColor}" style="width: 100%; max-width: 100px;">
+        </div>
+        
+        <div class="mb-3">
+          <label class="form-label">Cardholder Name</label>
+          <input type="text" class="form-control" name="cardholderName" id="cardholderNameInput" 
+                 value="${cardholderName}" required placeholder="Name on card">
+        </div>
+        
+        <div class="mb-3">
+          <label class="form-label">Card Number</label>
+          <input type="text" class="form-control" name="cardNumber" id="cardNumberInput" 
+                 value="${cardNumber}" required placeholder="1234 5678 9012 3456" maxlength="19">
+        </div>
+        
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Expiry Date</label>
+            <input type="text" class="form-control" name="expiryDate" id="expiryDateInput" 
+                  value="${expiryDate}" required placeholder="MM/YY" maxlength="5">
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label">CVV/CVC</label>
+            <input type="password" class="form-control" name="cvv" 
+                  value="${cvv}" required placeholder="123" maxlength="4">
+          </div>
+        </div>
+        
+        <div class="mb-3">
+          <label class="form-label">Notes (optional)</label>
+          <textarea class="form-control" name="notes" rows="2">${editing ? decrypt(card.notes || '') : ''}</textarea>
+        </div>
+      </div>
+      
+      <div class="d-flex">
+        <button class="btn btn-success me-2" type="submit">${editing ? "Save" : "Add"}</button>
+        <button class="btn btn-outline-secondary" type="button" id="cancelCardBtn">Cancel</button>
+      </div>
+    </form>
+  `;
+  
+  // Add event listeners for live preview
+  document.getElementById('cardholderNameInput').addEventListener('input', function() {
+    document.getElementById('previewCardholderName').innerText = this.value || 'YOUR NAME';
+  });
+  
+  document.getElementById('cardNumberInput').addEventListener('input', function() {
+    let value = this.value.replace(/\D/g, '');
+    let formattedValue = '';
+    
+    for (let i = 0; i < value.length && i < 16; i++) {
+      if (i > 0 && i % 4 === 0) {
+        formattedValue += ' ';
+      }
+      formattedValue += value[i];
+    }
+    
+    this.value = formattedValue;
+    document.getElementById('previewCardNumber').innerText = 
+      formatCardNumberForDisplay(formattedValue || '0000 0000 0000 0000');
+  });
+  
+  document.getElementById('expiryDateInput').addEventListener('input', function() {
+    let value = this.value.replace(/\D/g, '');
+    let formattedValue = '';
+    
+    if (value.length > 0) {
+      formattedValue = value.substring(0, 2);
+      if (value.length > 2) {
+        formattedValue += '/' + value.substring(2, 4);
+      }
+    }
+    
+    this.value = formattedValue;
+    document.getElementById('previewExpiryDate').innerText = formattedValue || 'MM/YY';
+  });
+  
+  document.getElementById('cardTypeInput').addEventListener('change', function() {
+    document.getElementById('previewCardType').innerText = 
+      this.value === 'debit' ? 'Debit Card' : 'Credit Card';
+  });
+  
+  document.getElementById('cardColorInput').addEventListener('input', updateCardPreview);
+  document.getElementById('cardBrandInput').addEventListener('change', updateCardPreview);
+  
+  function updateCardPreview() {
+    const cardColor = document.getElementById('cardColorInput').value;
+    const cardBrand = document.getElementById('cardBrandInput').value;
+    const isDarkColor = isColorDark(cardColor);
+    const textColor = isDarkColor ? '#ffffff' : '#000000';
+    
+    // Update card background
+    document.getElementById('cardPreview').style.background = cardColor;
+    
+    // Update text color for all text elements
+    const textElements = document.querySelectorAll('#cardPreview [style*="color:"]');
+    textElements.forEach(el => {
+      el.style.color = textColor;
+    });
+    
+    // Update SVG elements
+    document.getElementById('previewSmallLogo').innerHTML = renderCardLogo(cardBrand, textColor, 'small');
+    document.getElementById('previewLargeLogo').innerHTML = renderCardLogo(cardBrand, textColor, 'large');
+    
+    // Update NFC icon
+    const nfcPath = document.querySelector('#cardPreview svg path');
+    if (nfcPath) nfcPath.setAttribute('stroke', textColor);
+  }
+  
+  document.getElementById('cancelCardBtn').onclick = () => {
+    addEditMode = null;
+    renderDetails();
+  };
+  
+  // Keep the form submission handler unchanged
+  document.getElementById('cardForm').onsubmit = (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData.entries());
+    
+    if (!data.cardholderName || !data.cardNumber || !data.expiryDate || !data.cvv) return;
+    
+    let now = new Date().toLocaleString();
+    const folderId = "cards"; // Always store in the cards system folder
+    
+    const cardData = {
+      id: editing ? editId : Math.random().toString(36).slice(2),
+      cardholderName: encrypt(data.cardholderName),
+      cardNumber: encrypt(data.cardNumber),
+      expiryDate: encrypt(data.expiryDate),
+      cvv: encrypt(data.cvv),
+      notes: encrypt(data.notes || ""),
+      cardType: data.cardType,
+      cardBrand: data.cardBrand,
+      cardColor: data.cardColor,
+      created: editing ? card.created : now,
+      updated: now,
+      favorite: editing ? card.favorite || false : false,
+      isCard: true, // Flag to identify it as a card
+      folderId: folderId
+    };
+    
+    if (editing) {
+      let items = getPasswords(folderId);
+      let idx = items.findIndex(x => x.id === editId);
+      if (idx >= 0) {
+        items[idx] = cardData;
+      } else {
+        items.push(cardData);
+      }
+      savePasswords(folderId, items);
+    } else {
+      let items = getPasswords(folderId);
+      items.push(cardData);
+      savePasswords(folderId, items);
+    }
+    
+    addEditMode = null;
+    selectedPasswordId = cardData.id;
+    
+    // If not already in the cards folder, switch to it
+    if (selectedFolder !== "cards") {
+      selectedFolder = "cards";
+    }
+    renderAll();
+  };
+}
+
+// Add this function that was missing
+function renderAddEditForm(editId) {
+  const pane = document.getElementById('detailPane');
+  let editing = !!editId;
+  let password = null;
+  
+  if (editing) {
+    password = findPasswordById(editId);
+    if (!password) return;
+  } else {
+    password = {};
+  }
+  
+  // Create a list of all available folders for the dropdown
+  const folders = getFolders().filter(f => !f.system);
+  const folderOptions = folders.map(f => 
+    `<option value="${f.id}" ${editing && password.folderId === f.id ? 'selected' : ''}>${f.name}</option>`
+  ).join('');
+  
+  // Add an "unassigned" option that will show in All Items
+  const unassignedSelected = editing && (!password.folderId || password.folderId === "unassigned");
+  const unassignedOption = `<option value="unassigned" ${unassignedSelected ? 'selected' : ''}>All Items (No Folder)</option>`;
+  
+  pane.innerHTML = `
+    <form id="passwordForm" autocomplete="off">
+      <div class="mb-3">
+        <label class="form-label">Title</label>
+        <input type="text" class="form-control" name="title" value="${editing ? decrypt(password.title || "") : ""}" required placeholder="Website or App Name">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Username/Email</label>
+        <input type="text" class="form-control" name="username" value="${editing ? decrypt(password.username || "") : ""}" placeholder="Username or Email">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Password</label>
+        <div class="input-group">
+          <input type="password" class="form-control" name="password" id="passwordField" value="${editing ? decrypt(password.password || "") : ""}" required>
+          <button class="btn btn-outline-secondary" type="button" id="showPasswordBtn"><i class="bi bi-eye"></i></button>
+          <button class="btn btn-outline-secondary" type="button" id="generatePasswordBtn"><i class="bi bi-magic"></i> Generate</button>
+        </div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Folder</label>
+        <select class="form-select" name="folder">
+          ${unassignedOption}
+          ${folderOptions}
+        </select>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Notes</label>
+        <textarea class="form-control" name="notes" rows="3">${editing ? decrypt(password.notes || "") : ""}</textarea>
+      </div>
+      <div class="d-flex">
+        <button class="btn btn-success me-2" type="submit">${editing ? "Save" : "Add"}</button>
+        <button class="btn btn-outline-secondary" type="button" id="cancelBtn">Cancel</button>
+      </div>
+    </form>
+  `;
+
+  // Show/Hide Password button
+  document.getElementById('showPasswordBtn').onclick = () => {
+    const field = document.getElementById('passwordField');
+    if (field.type === "password") {
+      field.type = "text";
+      document.getElementById('showPasswordBtn').innerHTML = '<i class="bi bi-eye-slash"></i>';
+    } else {
+      field.type = "password";
+      document.getElementById('showPasswordBtn').innerHTML = '<i class="bi bi-eye"></i>';
+    }
+  };
+  
+  // Generate Password button
+  document.getElementById('generatePasswordBtn').onclick = () => {
+    const field = document.getElementById('passwordField');
+    
+    // Generate a strong password with letters, numbers and symbols
+    const length = 16;
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+~`|}{[]\\:;?><,./-=';
+    let password = '';
+    for (let i = 0; i < length; i++) {
+      password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    
+    field.type = "text";
+    field.value = password;
+    document.getElementById('showPasswordBtn').innerHTML = '<i class="bi bi-eye-slash"></i>';
+    
+    // Flash the field to indicate it changed
+    field.classList.add('bg-light');
+    setTimeout(() => field.classList.remove('bg-light'), 200);
+  };
+
+  // Cancel button
+  document.getElementById('cancelBtn').onclick = () => {
+    addEditMode = null;
+    renderDetails();
+  };
+
+  // Form submission
+  document.getElementById('passwordForm').onsubmit = (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData.entries());
+    
+    if (!data.title || !data.password) return;
+    
+    let now = new Date().toLocaleString();
+    const folderId = data.folder;
+    
+    // Remove folder from data before creating the password object
+    delete data.folder;
+    
+    const passwordData = {
+      id: editing ? editId : Math.random().toString(36).slice(2),
+      title: encrypt(data.title),
+      username: encrypt(data.username || ""),
+      password: encrypt(data.password),
+      notes: encrypt(data.notes || ""),
+      created: editing ? password.created : now,
+      updated: now,
+      favorite: editing ? password.favorite || false : false
+    };
+    
+    if (editing) {
+      let originalFolderId = password.folderId || "unassigned";
+      
+      // If folder hasn't changed, update in place
+      if (originalFolderId === folderId) {
+        let items = getPasswords(folderId);
+        let idx = items.findIndex(x => x.id === editId);
+        if (idx >= 0) {
+          items[idx] = passwordData;
+        } else {
+          items.push(passwordData);
+        }
+        savePasswords(folderId, items);
+      } else {
+        // Remove from original folder
+        let originalItems = getPasswords(originalFolderId);
+        originalItems = originalItems.filter(x => x.id !== editId);
+        savePasswords(originalFolderId, originalItems);
+        
+        // Add to new folder
+        let targetItems = getPasswords(folderId);
+        targetItems.push(passwordData);
+        savePasswords(folderId, targetItems);
+      }
+    } else {
+      let items = getPasswords(folderId);
+      items.push(passwordData);
+      savePasswords(folderId, items);
+    }
+    
+    addEditMode = null;
+    selectedPasswordId = passwordData.id;
+    
+    // If folder has changed and is not a system folder, switch to that folder view
+    if (folderId !== "unassigned" && !getFolders().find(f => f.id === folderId && f.system)) {
+      selectedFolder = folderId;
+    }
+    
+    renderAll();
+  };
+}
+
+// Format card number nicely with spaces
+function formatCardNumberWithSpaces(cardNumber) {
+  if (!cardNumber) return '0000 0000 0000 0000';
+  
+  const cleaned = cardNumber.replace(/\D/g, '');
+  let formatted = '';
+  
+  for (let i = 0; i < cleaned.length; i++) {
+    if (i > 0 && i % 4 === 0) {
+      formatted += ' ';
+    }
+    formatted += cleaned[i];
+  }
+  
+  return formatted;
+}
+
+// Better card number masking
+function formatCardNumberForDisplay(number) {
+  if (typeof number !== 'string') return '•••• •••• •••• ••••';
+  
+  // Clean the number first
+  const cleaned = number.replace(/\D/g, '');
+  
+  // For display, mask all but last 4 digits
+  if (cleaned.length > 4) {
+    const lastFour = cleaned.slice(-4);
+    return `•••• •••• •••• ${lastFour}`;
+  } else if (cleaned.length > 0) {
+    return '•••• •••• •••• ' + cleaned.padStart(4, '•');
+  } else {
+    return '•••• •••• •••• ••••';
+  }
+}
+
+// Render appropriate card logo based on brand
+function renderCardLogo(cardBrand, textColor, size) {
+  // Define sizes based on small or large
+  const scale = size === 'small' ? 0.7 : 1;
+  
+  switch(cardBrand) {
+    case 'visa':
+      return `
+        <svg width="${60 * scale}" height="${20 * scale}" viewBox="0 0 60 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M23.9 0.4H19.1L15.9 12.6L14.3 1.8C14.1 0.9 13.5 0.4 12.7 0.4H5.3L5.2 0.8C6.5 1.1 7.7 1.4 8.7 1.8C9.3 2.1 9.4 2.3 9.6 3L12.3 19.6H17.4L22.7 0.4H23.9Z" fill="${textColor}"/>
+          <path d="M44.5 19.6H49.2L46 0.4H42.1C41.1 0.4 40.4 0.9 40 1.9L33.4 19.6H38.5L39.3 17.1H44.2L44.5 19.6ZM40.8 13.4L42.8 6.9L43.9 13.4H40.8Z" fill="${textColor}"/>
+          <path d="M33.1 4.5L33.8 0.8C32.3 0.3 30.7 0 29 0C26.2 0 22.3 1.3 22.3 5.2C22.3 8.2 25.2 9.7 27.3 10.6C29.5 11.5 30.2 12.1 30.2 12.9C30.2 14.2 28.5 14.8 27 14.8C24.8 14.8 23.7 14.5 22 13.8L21.3 17.6C23 18.3 24.8 18.6 26.5 18.6C29.9 18.7 33.6 17.3 33.6 13.1C33.6 9.3 29.2 8.4 29.2 6.5C29.2 5.5 30.2 4.9 32.1 4.9C33.2 4.9 34.5 5.3 35.5 5.7L33.1 4.5Z" fill="${textColor}"/>
+          <path d="M57.1 0.4L53 13.5L52.6 11.7C51.8 9.3 49.4 6.7 46.6 5.3L50.4 19.6H55.5L62 0.4H57.1Z" fill="${textColor}"/>
+        </svg>`;
+    
+    case 'amex':
+      return `
+        <svg width="${60 * scale}" height="${40 * scale}" viewBox="0 0 60 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="5" y="5" width="50" height="30" rx="4" fill="#006FCF"/>
+          <path d="M15 25H10V15H15L18 21V15H23V25H18L15 19V25Z" fill="#FFFFFF"/>
+          <path d="M25 25V15H35V18H28V19H35V22H28V23H35V25H25Z" fill="#FFFFFF"/>
+          <path d="M40 15H36V25H39V22H40C43 22 45 21 45 18.5C45 16 43 15 40 15ZM40 19H39V17H40C40.5 17 41 17 41 18C41 19 40.5 19 40 19Z" fill="#FFFFFF"/>
+        </svg>`;
+      
+    case 'mastercard':
+      return `
+        <div style="display: flex; align-items: center;">
+          <div style="width: ${30 * scale}px; height: ${30 * scale}px; border-radius: 50%; background-color: #EB001B; opacity: 0.9;"></div>
+          <div style="width: ${30 * scale}px; height: ${30 * scale}px; border-radius: 50%; background-color: #F79E1B; opacity: 0.9; margin-left: ${-15 * scale}px;"></div>
+        </div>`;
+      
+    default: // Generic card
+      return `
+        <svg width="${36 * scale}" height="${24 * scale}" viewBox="0 0 36 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2" y="3" width="32" height="18" rx="3" stroke="${textColor}" stroke-width="1.5"/>
+          <path d="M2 10H34" stroke="${textColor}" stroke-width="1.5"/>
+          <path d="M8 18H10" stroke="${textColor}" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M14 18H16" stroke="${textColor}" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>`;
+  }
 }
