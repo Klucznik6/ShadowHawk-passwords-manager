@@ -390,7 +390,49 @@ function renderDetails() {
   }
 }
 
-// Add a new function to render card details
+// Add this helper function for rendering card brand logos properly
+// Replace the renderCardBrandLogo function with this improved version
+function renderCardBrandLogo(cardBrand, isDark) {
+  switch(cardBrand) {
+    case 'visa':
+      // Better VISA logo matching the blue color in screenshot
+      return `
+        <svg viewBox="0 0 60 20" width="56" height="32">
+          <path d="M22 17.2h-4l-2.3-14c-.2-.8-.8-1.2-1.5-1.2H7.5c-.6 0-1.1.5-1.2 1L0 17.2h4.5l.9-2.4h5.4l.5 2.4H22zM6.4 11.4l2.3-6.2 1.2 6.2H6.4zm18.2-.3c0-4.9 6.8-4.8 6.8-7.3 0-.7-.5-1.4-1.6-1.5-1.1-.2-2.6 0-4.1 1l-.7-3.4c.9-.4 2.6-.9 4.4-.9 4.1 0 6.8 2.1 6.8 5.2 0 4-5.7 4.3-5.7 6.1 0 .5.5 1.1 1.7 1.3.6.1 2.1.1 3.9-.7l.7 3.2c-.9.4-2.2.9-3.7.9-3.9 0-6.2-2.1-6.2-3.9h-.3zm17.5 6.1h-3.5L35 1h3.2l4 16.2zm5.1 0h-3.9l5.4-16.2h3.9l-5.4 16.2z" fill="${isDark ? 'white' : '#1434CB'}"/>
+        </svg>`;
+        
+    case 'amex':
+      // Better AMEX logo with correct colors
+      return `
+        <svg viewBox="0 0 40 20" width="56" height="32">
+          <rect width="40" height="20" rx="2" fill="${isDark ? 'white' : '#1F72CD'}"/>
+          <path d="M6 7L4 13h8v-6H8L6 7z" fill="${isDark ? '#1F72CD' : 'white'}"/>
+          <path d="M9 8.5v2L10 9l1 1.5v-2h1.5L11 7H8L9 8.5z" fill="${isDark ? '#1F72CD' : 'white'}"/>
+          <path d="M18 6h8v2h-5v1H26v2h-5v1H26v2h-8V6z" fill="${isDark ? '#1F72CD' : 'white'}"/>
+          <path d="M32 6h-3v8h3c1 0 3-1 3-4s-2-4-3-4zm-0.5 6H31V8h0.5c1 0 1 1.5 0 2.5 0 0.5-0.5 1.5-1 1.5z" fill="${isDark ? '#1F72CD' : 'white'}"/>
+        </svg>`;
+        
+    case 'mastercard':
+      // Better Mastercard logo with correct overlapping circles
+      return `
+        <svg viewBox="0 0 45 28" width="56" height="32">
+          <circle cx="16" cy="14" r="9" fill="#EB001B" />
+          <circle cx="29" cy="14" r="9" fill="#F79E1B" />
+          <path d="M22.5 7.5C20.8 9.6 20 12 20 14.5s.9 4.9 2.5 7c1.6-2.1 2.5-4.5 2.5-7s-.9-4.9-2.5-7z" fill="${isDark ? '#FFFFFF' : '#FF5F00'}" style="mix-blend-mode: overlay;" />
+        </svg>`;
+        
+    case 'other':
+    default:
+      // Generic card network logo
+      return `
+        <svg viewBox="0 0 48 30" width="56" height="32">
+          <rect x="4" y="5" width="40" height="20" rx="3" fill="none" stroke="${isDark ? 'white' : 'black'}" stroke-width="1.5"/>
+          <text x="24" y="18" text-anchor="middle" font-family="sans-serif" font-size="10" font-weight="bold" fill="${isDark ? 'white' : 'black'}">NEP</text>
+        </svg>`;
+  }
+}
+
+// Replace the renderCardDetails function with this improved version
 function renderCardDetails(card) {
   const pane = document.getElementById('detailPane');
   const cardholderName = decrypt(card.cardholderName);
@@ -401,6 +443,7 @@ function renderCardDetails(card) {
   const cardBrand = card.cardBrand || "mastercard";
   const cardColor = card.cardColor || "#000000";
   
+  // Calculate appropriate text color based on background
   const isDarkColor = isColorDark(cardColor);
   const textColor = isDarkColor ? '#ffffff' : '#000000';
   
@@ -410,47 +453,37 @@ function renderCardDetails(card) {
         <div class="credit-card" style="
           background: ${cardColor}; 
           width: 100%; 
-          max-width: 360px; 
-          height: 220px; 
+          max-width: 420px; 
+          height: 240px; 
           margin: 0 auto 2rem auto;
           border-radius: 16px;
-          box-shadow: 0 12px 24px rgba(0,0,0,0.2);
+          box-shadow: 0 12px 24px rgba(0,0,0,0.15);
           position: relative; 
-          overflow: hidden;">
+          overflow: hidden;
+          padding: 0;">
           
-          <!-- Card background pattern -->
-          <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; 
-                      background-image: radial-gradient(circle at 80% 20%, 
-                      rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.2) 100%);
-                      opacity: 0.6;"></div>
-                      
-          <!-- Subtle grain texture overlay -->
-          <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; 
-                      background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIj4KICA8ZmlsdGVyIGlkPSJub2lzZSIgeD0iMCIgeT0iMCIgd2lkdGg9IjIwMCUiIGhlaWdodD0iMjAwJSI+CiAgICA8ZmVUdXJidWxlbmNlIHR5cGU9ImZyYWN0YWxOb2lzZSIgYmFzZUZyZXF1ZW5jeT0iMC42NSIgbnVtT2N0YXZlcz0iMyIgc3RpdGNoVGlsZXM9InN0aXRjaCIgc2VlZD0iMiIgcmVzdWx0PSJ0dXJidWxlbmNlIj48L2ZlVHVyYnVsZW5jZT4KICAgIDxmZUNvbG9yTWF0cml4IHR5cGU9InNhdHVyYXRlIiB2YWx1ZXM9IjAiIGluPSJ0dXJidWxlbmNlIiByZXN1bHQ9ImdyYWluIj48L2ZlQ29sb3JNYXRyaXg+CiAgICA8ZmVCbGVuZCBtb2RlPSJvdmVybGF5IiBpbj0iZ3JhaW4iIHJlc3VsdD0iZ3JhaW4iIHNyYzI9ImdyYWluIj48L2ZlQmxlbmQ+CiAgICA8ZmVCbGVuZCBtb2RlPSJvdmVybGF5IiBpbj0iZ3JhaW4iIHJlc3VsdD0iZ3JhaW4iPjwvZmVCbGVuZD4KICA8L2ZpbHRlcj4KICA8cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsdGVyPSJ1cmwoI25vaXNlKSIgb3BhY2l0eT0iMC4wOCI+PC9yZWN0Pgo8L3N2Zz4=');
-                      opacity: 0.4;"></div>
-          
-          <!-- Card content -->
-          <div style="position: relative; padding: 24px; height: 100%; 
+          <!-- Card content container -->
+          <div style="position: relative; padding: 24px; height: 100%; width: 100%;
                       display: flex; flex-direction: column; justify-content: space-between;
-                      color: ${textColor};">
+                      color: ${textColor}; z-index: 2;">
             <!-- Top section -->
             <div class="d-flex justify-content-between align-items-start">
-              <div style="font-size: 1.1rem; font-weight: 600; letter-spacing: 0.5px;">
+              <div style="font-size: 1.3rem; font-weight: 600; letter-spacing: 0.5px;">
                 ${cardType === 'debit' ? 'Debit Card' : 'Credit Card'}
               </div>
               
-              <!-- Small brand logo in top corner -->
-              <div>
-                ${renderCardLogo(cardBrand, textColor, 'small')}
+              <!-- Card network logo in top right -->
+              <div style="height: 32px;">
+                ${renderCardBrandLogo(cardBrand, isDarkColor)}
               </div>
             </div>
             
             <!-- Chip section -->
-            <div class="d-flex align-items-center mt-2 mb-3">
+            <div class="d-flex align-items-center mt-1 mb-1">
               <!-- EMV Chip -->
               <div style="
-                width: 42px;
-                height: 32px; 
+                width: 45px;
+                height: 35px; 
                 background: linear-gradient(135deg, #D4AF37 0%, #F4E5A7 50%, #D4AF37 100%); 
                 border-radius: 5px;
                 display: flex;
@@ -458,75 +491,88 @@ function renderCardDetails(card) {
                 justify-content: center;
                 box-shadow: 0 1px 2px rgba(0,0,0,0.2);">
                 <div style="
-                  width: 75%; 
-                  height: 73%; 
+                  width: 80%; 
+                  height: 80%; 
                   background: linear-gradient(90deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.1) 100%);
                   border-radius: 2px;
                   display: flex;
                   flex-direction: column;
                   justify-content: space-between;
                   padding: 2px 0;">
-                  <div style="height: 1.5px; background: rgba(0,0,0,0.3);"></div>
-                  <div style="height: 1.5px; background: rgba(0,0,0,0.3);"></div>
-                  <div style="height: 1.5px; background: rgba(0,0,0,0.3);"></div>
+                  <div style="height: 2px; background: rgba(0,0,0,0.3);"></div>
+                  <div style="height: 2px; background: rgba(0,0,0,0.3);"></div>
+                  <div style="height: 2px; background: rgba(0,0,0,0.3);"></div>
                 </div>
               </div>
               
               <!-- NFC icon -->
-              <div style="margin-left: 10px; transform: rotate(90deg); opacity: 0.7;">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M12 4C7.58172 4 4 7.58172 4 12C4 16.4183 7.58172 20 12 20C16.4183 20 20 16.4183 20 12" 
-                    stroke="${textColor}" stroke-width="2" stroke-linecap="round"/>
-                  <path d="M16 8C16 9.65685 14.6569 11 13 11C11.3431 11 10 9.65685 10 8C10 6.34315 11.3431 5 13 5" 
-                    stroke="${textColor}" stroke-width="2" stroke-linecap="round"/>
+              <div style="margin-left: 15px; opacity: 0.8;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                  <path d="M8.5 14.5C7 12.5 7 9.5 8.5 7.5" stroke="${textColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M5.5 17.5C3 14.5 3 9.5 5.5 6.5" stroke="${textColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M2.5 20.5C-1 16.5 -1 7.5 2.5 3.5" stroke="${textColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
               </div>
             </div>
             
-            <!-- Card number -->
-            <div style="position: relative;">
+            <!-- Card number - with extra width and font adjustments for single line -->
+            <div style="position: relative; margin: 15px 0;">
               <div id="cardNumberDisplay" style="
                 font-family: 'Courier New', monospace; 
-                font-size: 1.5rem;
-                letter-spacing: 0.2rem;
+                font-size: 1.7rem;
+                letter-spacing: 1px;
                 font-weight: 500;
-                text-shadow: 0 1px 2px rgba(0,0,0,0.1);">
+                text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+                white-space: nowrap;
+                overflow: hidden;">
                 ${formatCardNumberForDisplay(cardNumber)}
               </div>
               <button id="toggleCardNumber" class="btn btn-sm position-absolute" 
                      style="top: -10px; right: -10px; padding: 0.15rem 0.4rem; 
-                     background: rgba(255,255,255,0.2); border: none;">
+                     background: rgba(255,255,255,0.2); border: none; z-index: 10;">
                 <i class="bi bi-eye" style="color: ${textColor}; opacity: 0.8;"></i>
               </button>
             </div>
             
             <!-- Bottom section -->
-            <div class="d-flex justify-content-between align-items-end mt-3">
+            <div class="d-flex justify-content-between align-items-end">
               <!-- Cardholder info -->
               <div>
-                <div style="font-size: 0.65rem; text-transform: uppercase; opacity: 0.7; margin-bottom: 5px; letter-spacing: 0.05rem;">
+                <div style="font-size: 0.7rem; text-transform: uppercase; opacity: 0.7; margin-bottom: 5px; letter-spacing: 0.05rem;">
                   CARD HOLDER
                 </div>
-                <div style="font-size: 1rem; font-weight: 500; letter-spacing: 0.05rem;">
-                  ${cardholderName}
+                <div style="font-size: 1.1rem; font-weight: 500; letter-spacing: 0.05rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px;">
+                  ${cardholderName || 'CARD HOLDER'}
                 </div>
               </div>
               
               <!-- Expiry date -->
               <div>
-                <div style="font-size: 0.65rem; text-transform: uppercase; opacity: 0.7; margin-bottom: 5px; letter-spacing: 0.05rem;">
+                <div style="font-size: 0.7rem; text-transform: uppercase; opacity: 0.7; margin-bottom: 5px; letter-spacing: 0.05rem;">
                   EXPIRES
                 </div>
-                <div style="font-size: 1rem; font-weight: 500;">
-                  ${expiryDate}
+                <div style="font-size: 1.1rem; font-weight: 500;">
+                  ${expiryDate || 'MM/YY'}
                 </div>
               </div>
             </div>
           </div>
           
-          <!-- Large brand logo in bottom right -->
-          <div style="position: absolute; bottom: 20px; right: 20px;">
-            ${renderCardLogo(cardBrand, textColor, 'large')}
+          <!-- Card background graphics -->
+          <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 1; pointer-events: none;">
+            <!-- Gradient overlay -->
+            <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; 
+                       background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.1) 100%);"></div>
+            
+            <!-- Subtle pattern -->
+            <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; 
+                       opacity: 0.03; 
+                       background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1IiBoZWlnaHQ9IjUiPgo8cmVjdCB3aWR0aD0iNSIgaGVpZ2h0PSI1IiBmaWxsPSIjZmZmIj48L3JlY3Q+CjxyZWN0IHdpZHRoPSIxIiBoZWlnaHQ9IjEiIGZpbGw9IiNjY2MiPjwvcmVjdD4KPC9zdmc+');"></div>
+            
+            <!-- Shine effect -->
+            <div style="position: absolute; top: -50%; left: -50%; right: -50%; bottom: -50%; 
+                       background: radial-gradient(ellipse at center, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 70%); 
+                       transform: rotate(-45deg);"></div>
           </div>
         </div>
       </div>
@@ -1360,7 +1406,8 @@ function getTimeAgo(timestamp) {
   return `${months} month${months !== 1 ? 's' : ''} ago`;
 }
 
-// Add this function after renderAddEditForm function
+// Also update the renderCardForm function with the improved card design
+// Update the renderCardForm function to fix cardholder name and expiry date display
 function renderCardForm(editId) {
   const pane = document.getElementById('detailPane');
   let editing = !!editId;
@@ -1382,7 +1429,7 @@ function renderCardForm(editId) {
   const cardBrand = card.cardBrand || "mastercard";
   const cardColor = card.cardColor || "#000000";
   
-  // Calculate text color based on background
+  // Calculate appropriate text color based on background
   const isDarkColor = isColorDark(cardColor);
   const textColor = isDarkColor ? '#ffffff' : '#000000';
   
@@ -1394,47 +1441,37 @@ function renderCardForm(editId) {
           <div class="credit-card" id="cardPreview" style="
             background: ${cardColor}; 
             width: 100%; 
-            max-width: 360px; 
-            height: 220px; 
+            max-width: 420px; 
+            height: 240px; 
             margin: 0 auto 1.5rem auto;
             border-radius: 16px;
-            box-shadow: 0 12px 24px rgba(0,0,0,0.2);
+            box-shadow: 0 12px 24px rgba(0,0,0,0.15);
             position: relative; 
-            overflow: hidden;">
+            overflow: hidden;
+            padding: 0;">
             
-            <!-- Card background pattern -->
-            <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; 
-                        background-image: radial-gradient(circle at 80% 20%, 
-                        rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.2) 100%);
-                        opacity: 0.6;"></div>
-                        
-            <!-- Subtle grain texture overlay -->
-            <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; 
-                        background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIj4KICA8ZmlsdGVyIGlkPSJub2lzZSIgeD0iMCIgeT0iMCIgd2lkdGg9IjIwMCUiIGhlaWdodD0iMjAwJSI+CiAgICA8ZmVUdXJidWxlbmNlIHR5cGU9ImZyYWN0YWxOb2lzZSIgYmFzZUZyZXF1ZW5jeT0iMC42NSIgbnVtT2N0YXZlcz0iMyIgc3RpdGNoVGlsZXM9InN0aXRjaCIgc2VlZD0iMiIgcmVzdWx0PSJ0dXJidWxlbmNlIj48L2ZlVHVyYnVsZW5jZT4KICAgIDxmZUNvbG9yTWF0cml4IHR5cGU9InNhdHVyYXRlIiB2YWx1ZXM9IjAiIGluPSJ0dXJidWxlbmNlIiByZXN1bHQ9ImdyYWluIj48L2ZlQ29sb3JNYXRyaXg+CiAgICA8ZmVCbGVuZCBtb2RlPSJvdmVybGF5IiBpbj0iZ3JhaW4iIHJlc3VsdD0iZ3JhaW4iIHNyYzI9ImdyYWluIj48L2ZlQmxlbmQ+CiAgICA8ZmVCbGVuZCBtb2RlPSJvdmVybGF5IiBpbj0iZ3JhaW4iIHJlc3VsdD0iZ3JhaW4iPjwvZmVCbGVuZD4KICA8L2ZpbHRlcj4KICA8cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsdGVyPSJ1cmwoI25vaXNlKSIgb3BhY2l0eT0iMC4wOCI+PC9yZWN0Pgo8L3N2Zz4=');
-                        opacity: 0.4;"></div>
-            
-            <!-- Card content -->
-            <div style="position: relative; padding: 24px; height: 100%; 
-                        display: flex; flex-direction: column; justify-content: space-between;
-                        color: ${textColor};">
+            <!-- Card content container -->
+            <div style="position: relative; padding: 24px; height: 100%; width: 100%;
+                      display: flex; flex-direction: column; justify-content: space-between;
+                      color: ${textColor}; z-index: 2;">
               <!-- Top section -->
               <div class="d-flex justify-content-between align-items-start">
-                <div id="previewCardType" style="font-size: 1.1rem; font-weight: 600; letter-spacing: 0.5px;">
+                <div id="previewCardType" style="font-size: 1.3rem; font-weight: 600; letter-spacing: 0.5px;">
                   ${cardType === 'debit' ? 'Debit Card' : 'Credit Card'}
                 </div>
                 
-                <!-- Small brand logo in top corner -->
-                <div id="previewSmallLogo">
-                  ${renderCardLogo(cardBrand, textColor, 'small')}
+                <!-- Card network logo in top right -->
+                <div id="previewCardNetworkLogo" style="height: 32px;">
+                  ${renderCardBrandLogo(cardBrand, isDarkColor)}
                 </div>
               </div>
               
               <!-- Chip section -->
-              <div class="d-flex align-items-center mt-2 mb-3">
+              <div class="d-flex align-items-center mt-1 mb-1">
                 <!-- EMV Chip -->
                 <div style="
-                  width: 42px;
-                  height: 32px; 
+                  width: 45px;
+                  height: 35px; 
                   background: linear-gradient(135deg, #D4AF37 0%, #F4E5A7 50%, #D4AF37 100%); 
                   border-radius: 5px;
                   display: flex;
@@ -1442,70 +1479,83 @@ function renderCardForm(editId) {
                   justify-content: center;
                   box-shadow: 0 1px 2px rgba(0,0,0,0.2);">
                   <div style="
-                    width: 75%; 
-                    height: 73%; 
+                    width: 80%; 
+                    height: 80%; 
                     background: linear-gradient(90deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.1) 100%);
                     border-radius: 2px;
                     display: flex;
                     flex-direction: column;
                     justify-content: space-between;
                     padding: 2px 0;">
-                    <div style="height: 1.5px; background: rgba(0,0,0,0.3);"></div>
-                    <div style="height: 1.5px; background: rgba(0,0,0,0.3);"></div>
-                    <div style="height: 1.5px; background: rgba(0,0,0,0.3);"></div>
+                    <div style="height: 2px; background: rgba(0,0,0,0.3);"></div>
+                    <div style="height: 2px; background: rgba(0,0,0,0.3);"></div>
+                    <div style="height: 2px; background: rgba(0,0,0,0.3);"></div>
                   </div>
                 </div>
                 
                 <!-- NFC icon -->
-                <div style="margin-left: 10px; transform: rotate(90deg); opacity: 0.7;">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 4C7.58172 4 4 7.58172 4 12C4 16.4183 7.58172 20 12 20C16.4183 20 20 16.4183 20 12" 
-                      stroke="${textColor}" stroke-width="2" stroke-linecap="round"/>
-                    <path d="M16 8C16 9.65685 14.6569 11 13 11C11.3431 11 10 9.65685 10 8C10 6.34315 11.3431 5 13 5" 
-                      stroke="${textColor}" stroke-width="2" stroke-linecap="round"/>
+                <div style="margin-left: 15px; opacity: 0.8;">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path d="M8.5 14.5C7 12.5 7 9.5 8.5 7.5" stroke="${textColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M5.5 17.5C3 14.5 3 9.5 5.5 6.5" stroke="${textColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M2.5 20.5C-1 16.5 -1 7.5 2.5 3.5" stroke="${textColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                 </div>
               </div>
               
               <!-- Card number -->
-              <div>
+              <div style="position: relative; margin: 15px 0;">
                 <div id="previewCardNumber" style="
                   font-family: 'Courier New', monospace; 
-                  font-size: 1.5rem;
-                  letter-spacing: 0.2rem;
+                  font-size: 1.7rem;
+                  letter-spacing: 1px;
                   font-weight: 500;
-                  text-shadow: 0 1px 2px rgba(0,0,0,0.1);">
+                  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+                  white-space: nowrap;
+                  overflow: hidden;">
                   ${formatCardNumberForDisplay(cardNumber || '0000 0000 0000 0000')}
                 </div>
               </div>
               
               <!-- Bottom section -->
-              <div class="d-flex justify-content-between align-items-end mt-3">
+              <div class="d-flex justify-content-between align-items-end">
                 <!-- Cardholder info -->
                 <div>
-                  <div style="font-size: 0.65rem; text-transform: uppercase; opacity: 0.7; margin-bottom: 5px; letter-spacing: 0.05rem;">
+                  <div style="font-size: 0.7rem; text-transform: uppercase; opacity: 0.7; margin-bottom: 5px; letter-spacing: 0.05rem;">
                     CARD HOLDER
                   </div>
-                  <div id="previewCardholderName" style="font-size: 1rem; font-weight: 500; letter-spacing: 0.05rem;">
-                    ${cardholderName || 'YOUR NAME'}
+                  <div id="previewCardholderName" style="font-size: 1.1rem; font-weight: 500; letter-spacing: 0.05rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px;">
+                    ${cardholderName || 'CARD HOLDER'}
                   </div>
                 </div>
                 
                 <!-- Expiry date -->
                 <div>
-                  <div style="font-size: 0.65rem; text-transform: uppercase; opacity: 0.7; margin-bottom: 5px; letter-spacing: 0.05rem;">
+                  <div style="font-size: 0.7rem; text-transform: uppercase; opacity: 0.7; margin-bottom: 5px; letter-spacing: 0.05rem;">
                     EXPIRES
                   </div>
-                  <div id="previewExpiryDate" style="font-size: 1rem; font-weight: 500;">
+                  <div id="previewExpiryDate" style="font-size: 1.1rem; font-weight: 500;">
                     ${expiryDate || 'MM/YY'}
                   </div>
                 </div>
               </div>
             </div>
             
-            <!-- Large brand logo in bottom right -->
-            <div id="previewLargeLogo" style="position: absolute; bottom: 20px; right: 20px;">
-              ${renderCardLogo(cardBrand, textColor, 'large')}
+            <!-- Card background graphics -->
+            <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 1; pointer-events: none;">
+              <!-- Gradient overlay -->
+              <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; 
+                         background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.1) 100%);"></div>
+              
+              <!-- Subtle pattern -->
+              <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; 
+                         opacity: 0.03; 
+                         background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1IiBoZWlnaHQ9IjUiPgo8cmVjdCB3aWR0aD0iNSIgaGVpZ2h0PSI1IiBmaWxsPSIjZmZmIj48L3JlY3Q+CjxyZWN0IHdpZHRoPSIxIiBoZWlnaHQ9IjEiIGZpbGw9IiNjY2MiPjwvcmVjdD4KPC9zdmc+');"></div>
+              
+              <!-- Shine effect -->
+              <div style="position: absolute; top: -50%; left: -50%; right: -50%; bottom: -50%; 
+                         background: radial-gradient(ellipse at center, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 70%); 
+                         transform: rotate(-45deg);"></div>
             </div>
           </div>
         </div>
@@ -1555,7 +1605,7 @@ function renderCardForm(editId) {
           </div>
           <div class="col-md-6 mb-3">
             <label class="form-label">CVV/CVC</label>
-            <input type="password" class="form-control" name="cvv" 
+            <input type="password" class="form-control" name="cvv" id="cvvInput"
                   value="${cvv}" required placeholder="123" maxlength="4">
           </div>
         </div>
@@ -1575,7 +1625,7 @@ function renderCardForm(editId) {
   
   // Add event listeners for live preview
   document.getElementById('cardholderNameInput').addEventListener('input', function() {
-    document.getElementById('previewCardholderName').innerText = this.value || 'YOUR NAME';
+    document.getElementById('previewCardholderName').innerText = this.value || 'CARD HOLDER';
   });
   
   document.getElementById('cardNumberInput').addEventListener('input', function() {
@@ -1621,24 +1671,27 @@ function renderCardForm(editId) {
     const cardColor = document.getElementById('cardColorInput').value;
     const cardBrand = document.getElementById('cardBrandInput').value;
     const isDarkColor = isColorDark(cardColor);
-    const textColor = isDarkColor ? '#ffffff' : '#000000';
     
     // Update card background
     document.getElementById('cardPreview').style.background = cardColor;
     
     // Update text color for all text elements
+    const textColor = isDarkColor ? '#ffffff' : '#000000';
     const textElements = document.querySelectorAll('#cardPreview [style*="color:"]');
     textElements.forEach(el => {
       el.style.color = textColor;
     });
     
     // Update SVG elements
-    document.getElementById('previewSmallLogo').innerHTML = renderCardLogo(cardBrand, textColor, 'small');
-    document.getElementById('previewLargeLogo').innerHTML = renderCardLogo(cardBrand, textColor, 'large');
+    document.getElementById('previewCardNetworkLogo').innerHTML = renderCardBrandLogo(cardBrand, isDarkColor);
     
     // Update NFC icon
-    const nfcPath = document.querySelector('#cardPreview svg path');
-    if (nfcPath) nfcPath.setAttribute('stroke', textColor);
+    const nfcPaths = document.querySelectorAll('#cardPreview svg path');
+    nfcPaths.forEach(path => {
+      if (path.getAttribute('stroke')) {
+        path.setAttribute('stroke', textColor);
+      }
+    });
   }
   
   document.getElementById('cancelCardBtn').onclick = () => {
@@ -1646,7 +1699,7 @@ function renderCardForm(editId) {
     renderDetails();
   };
   
-  // Keep the form submission handler unchanged
+  // Form submission handler with fixes for proper card data saving
   document.getElementById('cardForm').onsubmit = (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
@@ -1700,6 +1753,23 @@ function renderCardForm(editId) {
   };
 }
 
+// Update the formatCardNumberForDisplay function to better match the screenshot
+function formatCardNumberForDisplay(number) {
+  if (typeof number !== 'string') return '• • • •   • • • •   • • • •   • • • •';
+  
+  // Clean the number first
+  const cleaned = number.replace(/\D/g, '');
+  
+  // For display, mask all but last 4 digits
+  if (cleaned.length > 4) {
+    const lastFour = cleaned.slice(-4);
+    return `• • • •   • • • •   • • • •   ${lastFour}`;
+  } else if (cleaned.length > 0) {
+    return '• • • •   • • • •   • • • •   ' + cleaned.padStart(4, '•');
+  } else {
+    return '• • • •   • • • •   • • • •   • • • •';
+  }
+}
 // Add this function that was missing
 function renderAddEditForm(editId) {
   const pane = document.getElementById('detailPane');

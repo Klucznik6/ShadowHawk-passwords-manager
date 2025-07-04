@@ -22,7 +22,7 @@
   "homepage": "https://github.com/Klucznik6/ShadowHawk-passwords-manager#readme",
   "description": "",
   "devDependencies": {
-    "electron": "^36.5.0"
+    "electron": "^36.6.0"
   },
   "dependencies": {
     "bootstrap": "^5.3.7",
