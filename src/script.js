@@ -1525,11 +1525,11 @@ function renderCardForm(editId) {
                 </div>
                 
                 <!-- NFC icon -->
-                <div style="margin-left: 15px; opacity: 0.8;">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                    <path d="M8.5 14.5C7 12.5 7 9.5 8.5 7.5" stroke="${textColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M5.5 17.5C3 14.5 3 9.5 5.5 6.5" stroke="${textColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M2.5 20.5C-1 16.5 -1 7.5 2.5 3.5" stroke="${textColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <div style="display: flex; align-items: center; justify-content: center; margin-left: 15px; opacity: 0.8; height: 24px; width: 30px;">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M9 16C6.6 13 6.6 9 9 6" stroke="${textColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M6 18.5C2.5 14.5 2.5 8.5 6 4.5" stroke="${textColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M12 13.5C10.8 12 10.8 10 12 8.5" stroke="${textColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                 </div>
               </div>
