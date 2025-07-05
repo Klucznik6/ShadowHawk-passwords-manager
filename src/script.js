@@ -392,43 +392,74 @@ function renderDetails() {
 
 // Add this helper function for rendering card brand logos properly
 // Replace the renderCardBrandLogo function with this improved version
+// Update the renderCardBrandLogo function with the HTML/CSS approach
 function renderCardBrandLogo(cardBrand, isDark) {
   switch(cardBrand) {
     case 'visa':
-      // Better VISA logo matching the blue color in screenshot
+      // VISA logo using HTML/CSS
       return `
-        <svg viewBox="0 0 60 20" width="56" height="32">
-          <path d="M22 17.2h-4l-2.3-14c-.2-.8-.8-1.2-1.5-1.2H7.5c-.6 0-1.1.5-1.2 1L0 17.2h4.5l.9-2.4h5.4l.5 2.4H22zM6.4 11.4l2.3-6.2 1.2 6.2H6.4zm18.2-.3c0-4.9 6.8-4.8 6.8-7.3 0-.7-.5-1.4-1.6-1.5-1.1-.2-2.6 0-4.1 1l-.7-3.4c.9-.4 2.6-.9 4.4-.9 4.1 0 6.8 2.1 6.8 5.2 0 4-5.7 4.3-5.7 6.1 0 .5.5 1.1 1.7 1.3.6.1 2.1.1 3.9-.7l.7 3.2c-.9.4-2.2.9-3.7.9-3.9 0-6.2-2.1-6.2-3.9h-.3zm17.5 6.1h-3.5L35 1h3.2l4 16.2zm5.1 0h-3.9l5.4-16.2h3.9l-5.4 16.2z" fill="${isDark ? 'white' : '#1434CB'}"/>
-        </svg>`;
+        <div style="display: flex; align-items: center; justify-content: center; height: 100%;">
+          <div style="
+            font-family: Arial, sans-serif;
+            font-size: 18px;
+            font-style: italic;
+            font-weight: 800;
+            color: ${isDark ? 'white' : '#1434CB'};
+            letter-spacing: -1px;
+            transform: skew(-15deg);
+            position: relative;
+          ">VISA</div>
+        </div>`;
         
     case 'amex':
-      // Better AMEX logo with correct colors
+      // American Express logo using HTML/CSS
       return `
-        <svg viewBox="0 0 40 20" width="56" height="32">
-          <rect width="40" height="20" rx="2" fill="${isDark ? 'white' : '#1F72CD'}"/>
-          <path d="M6 7L4 13h8v-6H8L6 7z" fill="${isDark ? '#1F72CD' : 'white'}"/>
-          <path d="M9 8.5v2L10 9l1 1.5v-2h1.5L11 7H8L9 8.5z" fill="${isDark ? '#1F72CD' : 'white'}"/>
-          <path d="M18 6h8v2h-5v1H26v2h-5v1H26v2h-8V6z" fill="${isDark ? '#1F72CD' : 'white'}"/>
-          <path d="M32 6h-3v8h3c1 0 3-1 3-4s-2-4-3-4zm-0.5 6H31V8h0.5c1 0 1 1.5 0 2.5 0 0.5-0.5 1.5-1 1.5z" fill="${isDark ? '#1F72CD' : 'white'}"/>
-        </svg>`;
+        <div style="
+          display: flex; 
+          align-items: center; 
+          justify-content: center; 
+          background: ${isDark ? 'white' : '#1F72CD'}; 
+          border-radius: 4px; 
+          padding: 1px 8px; 
+          height: 26px;
+        ">
+          <div style="
+            color: ${isDark ? '#1F72CD' : 'white'};
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            font-weight: bold;
+            letter-spacing: -0.5px;
+          ">AMEX</div>
+        </div>`;
         
     case 'mastercard':
-      // Better Mastercard logo with correct overlapping circles
+      // Mastercard logo using overlapping circles
       return `
-        <svg viewBox="0 0 45 28" width="56" height="32">
-          <circle cx="16" cy="14" r="9" fill="#EB001B" />
-          <circle cx="29" cy="14" r="9" fill="#F79E1B" />
-          <path d="M22.5 7.5C20.8 9.6 20 12 20 14.5s.9 4.9 2.5 7c1.6-2.1 2.5-4.5 2.5-7s-.9-4.9-2.5-7z" fill="${isDark ? '#FFFFFF' : '#FF5F00'}" style="mix-blend-mode: overlay;" />
-        </svg>`;
+        <div style="display: flex; align-items: center; height: 100%;">
+          <div style="width: 30px; height: 30px; border-radius: 50%; background-color: #EB001B; opacity: 0.9;"></div>
+          <div style="width: 30px; height: 30px; border-radius: 50%; background-color: #F79E1B; opacity: 0.9; margin-left: -15px;"></div>
+        </div>`;
         
     case 'other':
     default:
       // Generic card network logo
       return `
-        <svg viewBox="0 0 48 30" width="56" height="32">
-          <rect x="4" y="5" width="40" height="20" rx="3" fill="none" stroke="${isDark ? 'white' : 'black'}" stroke-width="1.5"/>
-          <text x="24" y="18" text-anchor="middle" font-family="sans-serif" font-size="10" font-weight="bold" fill="${isDark ? 'white' : 'black'}">NEP</text>
-        </svg>`;
+        <div style="
+          display: flex; 
+          align-items: center; 
+          justify-content: center; 
+          border: 2px solid ${isDark ? 'white' : 'black'};
+          border-radius: 4px; 
+          padding: 1px 8px; 
+          height: 24px;
+        ">
+          <div style="
+            color: ${isDark ? 'white' : 'black'};
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            font-weight: bold;
+          ">NEP</div>
+        </div>`;
   }
 }
 
@@ -1971,43 +2002,72 @@ function formatCardNumberForDisplay(number) {
 }
 
 // Render appropriate card logo based on brand
+// Update the renderCardLogo function to use the same HTML/CSS approach
 function renderCardLogo(cardBrand, textColor, size) {
   // Define sizes based on small or large
   const scale = size === 'small' ? 0.7 : 1;
+  const isDark = textColor === '#ffffff' || textColor === 'white';
   
   switch(cardBrand) {
     case 'visa':
       return `
-        <svg width="${60 * scale}" height="${20 * scale}" viewBox="0 0 60 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M23.9 0.4H19.1L15.9 12.6L14.3 1.8C14.1 0.9 13.5 0.4 12.7 0.4H5.3L5.2 0.8C6.5 1.1 7.7 1.4 8.7 1.8C9.3 2.1 9.4 2.3 9.6 3L12.3 19.6H17.4L22.7 0.4H23.9Z" fill="${textColor}"/>
-          <path d="M44.5 19.6H49.2L46 0.4H42.1C41.1 0.4 40.4 0.9 40 1.9L33.4 19.6H38.5L39.3 17.1H44.2L44.5 19.6ZM40.8 13.4L42.8 6.9L43.9 13.4H40.8Z" fill="${textColor}"/>
-          <path d="M33.1 4.5L33.8 0.8C32.3 0.3 30.7 0 29 0C26.2 0 22.3 1.3 22.3 5.2C22.3 8.2 25.2 9.7 27.3 10.6C29.5 11.5 30.2 12.1 30.2 12.9C30.2 14.2 28.5 14.8 27 14.8C24.8 14.8 23.7 14.5 22 13.8L21.3 17.6C23 18.3 24.8 18.6 26.5 18.6C29.9 18.7 33.6 17.3 33.6 13.1C33.6 9.3 29.2 8.4 29.2 6.5C29.2 5.5 30.2 4.9 32.1 4.9C33.2 4.9 34.5 5.3 35.5 5.7L33.1 4.5Z" fill="${textColor}"/>
-          <path d="M57.1 0.4L53 13.5L52.6 11.7C51.8 9.3 49.4 6.7 46.6 5.3L50.4 19.6H55.5L62 0.4H57.1Z" fill="${textColor}"/>
-        </svg>`;
-    
+        <div style="display: flex; align-items: center; justify-content: center; height: 100%;">
+          <div style="
+            font-family: Arial, sans-serif;
+            font-size: ${18 * scale}px;
+            font-style: italic;
+            font-weight: 800;
+            color: ${isDark ? 'white' : '#1434CB'};
+            letter-spacing: -1px;
+            transform: skew(-15deg);
+            position: relative;
+          ">VISA</div>
+        </div>`;
+      
     case 'amex':
       return `
-        <svg width="${60 * scale}" height="${40 * scale}" viewBox="0 0 60 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect x="5" y="5" width="50" height="30" rx="4" fill="#006FCF"/>
-          <path d="M15 25H10V15H15L18 21V15H23V25H18L15 19V25Z" fill="#FFFFFF"/>
-          <path d="M25 25V15H35V18H28V19H35V22H28V23H35V25H25Z" fill="#FFFFFF"/>
-          <path d="M40 15H36V25H39V22H40C43 22 45 21 45 18.5C45 16 43 15 40 15ZM40 19H39V17H40C40.5 17 41 17 41 18C41 19 40.5 19 40 19Z" fill="#FFFFFF"/>
-        </svg>`;
-      
+        <div style="
+          display: flex; 
+          align-items: center; 
+          justify-content: center; 
+          background: ${isDark ? 'white' : '#1F72CD'}; 
+          border-radius: ${4 * scale}px; 
+          padding: ${1 * scale}px ${8 * scale}px; 
+          height: ${26 * scale}px;
+        ">
+          <div style="
+            color: ${isDark ? '#1F72CD' : 'white'};
+            font-family: Arial, sans-serif;
+            font-size: ${14 * scale}px;
+            font-weight: bold;
+            letter-spacing: -0.5px;
+          ">AMEX</div>
+        </div>`;
+        
     case 'mastercard':
       return `
-        <div style="display: flex; align-items: center;">
+        <div style="display: flex; align-items: center; height: 100%;">
           <div style="width: ${30 * scale}px; height: ${30 * scale}px; border-radius: 50%; background-color: #EB001B; opacity: 0.9;"></div>
           <div style="width: ${30 * scale}px; height: ${30 * scale}px; border-radius: 50%; background-color: #F79E1B; opacity: 0.9; margin-left: ${-15 * scale}px;"></div>
         </div>`;
       
     default: // Generic card
       return `
-        <svg width="${36 * scale}" height="${24 * scale}" viewBox="0 0 36 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect x="2" y="3" width="32" height="18" rx="3" stroke="${textColor}" stroke-width="1.5"/>
-          <path d="M2 10H34" stroke="${textColor}" stroke-width="1.5"/>
-          <path d="M8 18H10" stroke="${textColor}" stroke-width="1.5" stroke-linecap="round"/>
-          <path d="M14 18H16" stroke="${textColor}" stroke-width="1.5" stroke-linecap="round"/>
-        </svg>`;
+        <div style="
+          display: flex; 
+          align-items: center; 
+          justify-content: center; 
+          border: ${2 * scale}px solid ${textColor};
+          border-radius: ${4 * scale}px; 
+          padding: ${1 * scale}px ${8 * scale}px; 
+          height: ${24 * scale}px;
+        ">
+          <div style="
+            color: ${textColor};
+            font-family: Arial, sans-serif;
+            font-size: ${12 * scale}px;
+            font-weight: bold;
+          ">NEP</div>
+        </div>`;
   }
 }
