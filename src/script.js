@@ -871,31 +871,32 @@ function cleanupOldDeletedItems() {
   }
 }
 
-// Update the renderAll function to run cleanup
+// Update the renderAll function to handle the card form layout
 function renderAll() {
-  cleanupOldDeletedItems(); // Call this at the beginning
+  cleanupOldDeletedItems();
   renderFolders();
   renderPasswordsList();
   
-  // Full-width logic for special views (Watchtower and Recently Deleted)
+  // Full-width logic for special views (Watchtower, Recently Deleted, and Card Form)
   const appList = document.querySelector('.app-list');
   const appDetail = document.querySelector('.app-detail');
   const listTopBar = document.getElementById('listTopBar');
   const detailTopBar = document.getElementById('detailTopBar');
   const detailPane = document.getElementById('detailPane');
   
-  // Apply full-width layout for both Watchtower and Recently Deleted
-  if (selectedFolder === "watchtower" || selectedFolder === "deleted") {
+  // Apply full-width layout for Watchtower, Recently Deleted, and adding cards
+  const isFullWidth = selectedFolder === "watchtower" || 
+                     selectedFolder === "deleted" || 
+                     (addEditMode === "addCard" || (addEditMode === "edit" && findPasswordById(selectedPasswordId)?.isCard));
+  
+  if (isFullWidth) {
     // Hide list and show detail pane in full width
     appList.style.display = "none";
     appDetail.classList.add('watchtower-full');
     
     // Hide top bars
     if (listTopBar) listTopBar.style.display = "none";
-    if (detailTopBar) {
-      // Just hide it rather than trying to modify its structure
-      detailTopBar.style.display = "none";
-    }
+    if (detailTopBar) detailTopBar.style.display = "none";
     
     // Remove top padding
     if (detailPane) {
@@ -912,7 +913,7 @@ function renderAll() {
       document.head.appendChild(style);
     }
     
-    // This CSS targets the specific elements causing the strip
+    // CSS to fix layout issues
     style.innerHTML = `
       .app-main-row { margin-top: 0 !important; }
       .container-fluid { padding-top: 0 !important; }
@@ -921,7 +922,6 @@ function renderAll() {
       #detailTopBar { height: 0 !important; padding: 0 !important; margin: 0 !important; overflow: hidden !important; }
     `;
     
-    // Wait a bit then render details to make sure layout is applied
     setTimeout(renderDetails, 0);
   } else {
     // Reset everything for normal views
@@ -943,7 +943,6 @@ function renderAll() {
       style.innerHTML = '';
     }
     
-    // Update the UI
     renderDetails();
   }
   
@@ -997,16 +996,41 @@ document.getElementById('addFolderBtn').onclick = () => {
 };
 
 // Update the addPasswordBtn event handler to fix any issues
+// Update the addPasswordBtn event handler
 document.getElementById('addPasswordBtn').onclick = () => {
-  // If we're in the cards folder, default to adding a card
   if (selectedFolder === "cards") {
+    // Use watchtower-like layout for cards
     addEditMode = "addCard";
+    
+    // Apply full-width layout like Watchtower
+    const appList = document.querySelector('.app-list');
+    const appDetail = document.querySelector('.app-detail');
+    const listTopBar = document.getElementById('listTopBar');
+    const detailTopBar = document.getElementById('detailTopBar');
+    
+    // Hide list and show detail pane in full width
+    appList.style.display = "none";
+    appDetail.classList.add('watchtower-full');
+    
+    // Hide top bars
+    if (listTopBar) listTopBar.style.display = "none";
+    if (detailTopBar) detailTopBar.style.display = "none";
+    
+    // Remove top padding from detail pane
+    const detailPane = document.getElementById('detailPane');
+    if (detailPane) {
+      detailPane.classList.add('no-top-padding');
+      detailPane.style.marginTop = "0";
+      detailPane.style.paddingTop = "0";
+    }
   } else {
+    // Regular password form for other folders
     addEditMode = "add";
   }
   selectedPasswordId = null;
   renderDetails();
 };
+
 document.getElementById('logoutBtn').onclick = () => {
   logoutUser();
   document.getElementById('mainLayout').style.display = "none";
@@ -1506,6 +1530,7 @@ function getTimeAgo(timestamp) {
 
 // Also update the renderCardForm function with the improved card design
 // Update the renderCardForm function to fix cardholder name and expiry date display
+// Update the renderCardForm function to use a Watchtower-like layout
 function renderCardForm(editId) {
   const pane = document.getElementById('detailPane');
   let editing = !!editId;
@@ -1531,194 +1556,221 @@ function renderCardForm(editId) {
   const isDarkColor = isColorDark(cardColor);
   const textColor = isDarkColor ? '#ffffff' : '#000000';
   
+  // Create a Watchtower-like layout
   pane.innerHTML = `
-    <form id="cardForm" autocomplete="off">
-      <div class="mb-4 mt-2">
-        <!-- Improved card preview -->
-        <div class="card-preview-container mb-4">
-          <div class="credit-card" id="cardPreview" style="
-            background: ${cardColor}; 
-            width: 100%; 
-            max-width: 420px; 
-            height: 240px; 
-            margin: 0 auto 1.5rem auto;
-            border-radius: 16px;
-            box-shadow: 0 12px 24px rgba(0,0,0,0.15);
-            position: relative; 
-            overflow: hidden;
-            padding: 0;">
-            
-            <!-- Card content container -->
-            <div style="position: relative; padding: 24px; height: 100%; width: 100%;
-                      display: flex; flex-direction: column; justify-content: space-between;
-                      color: ${textColor}; z-index: 2;">
-              <!-- Top section -->
-              <div class="d-flex justify-content-between align-items-start">
-                <div id="previewCardType" style="font-size: 1.3rem; font-weight: 600; letter-spacing: 0.5px;">
-                  ${cardType === 'debit' ? 'Debit Card' : 'Credit Card'}
-                </div>
-                
-                <!-- Card network logo in top right -->
-                <div id="previewCardNetworkLogo" style="height: 32px;">
-                  ${renderCardBrandLogo(cardBrand, isDarkColor)}
-                </div>
-              </div>
-              
-              <!-- Chip section -->
-              <div class="d-flex align-items-center mt-1 mb-1">
-                <!-- EMV Chip -->
-                <div style="
-                  width: 45px;
-                  height: 35px; 
-                  background: linear-gradient(135deg, #D4AF37 0%, #F4E5A7 50%, #D4AF37 100%); 
-                  border-radius: 5px;
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  box-shadow: 0 1px 2px rgba(0,0,0,0.2);">
-                  <div style="
-                    width: 80%; 
-                    height: 80%; 
-                    background: linear-gradient(90deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.1) 100%);
-                    border-radius: 2px;
-                    display: flex;
-                    flex-direction: column;
-                    justify-content: space-between;
-                    padding: 2px 0;">
-                    <div style="height: 2px; background: rgba(0,0,0,0.3);"></div>
-                    <div style="height: 2px; background: rgba(0,0,0,0.3);"></div>
-                    <div style="height: 2px; background: rgba(0,0,0,0.3);"></div>
-                  </div>
-                </div>
-                
-                <!-- NFC icon -->
-                <div style="display: flex; align-items: center; justify-content: center; margin-left: 15px; opacity: 0.8; height: 24px; width: 30px;">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M9 16C6.6 13 6.6 9 9 6" stroke="${textColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M6 18.5C2.5 14.5 2.5 8.5 6 4.5" stroke="${textColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M12 13.5C10.8 12 10.8 10 12 8.5" stroke="${textColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                </div>
-              </div>
-              
-              <!-- Card number -->
-              <div style="position: relative; margin: 15px 0;">
-                <div id="previewCardNumber" style="
-                  font-family: 'Courier New', monospace; 
-                  font-size: 1.7rem;
-                  letter-spacing: 1px;
-                  font-weight: 500;
-                  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
-                  white-space: nowrap;
-                  overflow: hidden;">
-                  ${formatCardNumberForDisplay(cardNumber || '0000 0000 0000 0000')}
-                </div>
-              </div>
-              
-              <!-- Bottom section -->
-              <div class="d-flex justify-content-between align-items-end">
-                <!-- Cardholder info -->
-                <div>
-                  <div style="font-size: 0.7rem; text-transform: uppercase; opacity: 0.7; margin-bottom: 5px; letter-spacing: 0.05rem;">
-                    CARD HOLDER
-                  </div>
-                  <div id="previewCardholderName" style="font-size: 1.1rem; font-weight: 500; letter-spacing: 0.05rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px;">
-                    ${cardholderName || 'CARD HOLDER'}
-                  </div>
-                </div>
-                
-                <!-- Expiry date -->
-                <div>
-                  <div style="font-size: 0.7rem; text-transform: uppercase; opacity: 0.7; margin-bottom: 5px; letter-spacing: 0.05rem;">
-                    EXPIRES
-                  </div>
-                  <div id="previewExpiryDate" style="font-size: 1.1rem; font-weight: 500;">
-                    ${expiryDate || 'MM/YY'}
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <!-- Card background graphics -->
-            <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 1; pointer-events: none;">
-              <!-- Gradient overlay -->
-              <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; 
-                         background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.1) 100%);"></div>
-              
-              <!-- Subtle pattern -->
-              <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; 
-                         opacity: 0.03; 
-                         background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1IiBoZWlnaHQ9IjUiPgo8cmVjdCB3aWR0aD0iNSIgaGVpZ2h0PSI1IiBmaWxsPSIjZmZmIj48L3JlY3Q+CjxyZWN0IHdpZHRoPSIxIiBoZWlnaHQ9IjEiIGZpbGw9IiNjY2MiPjwvcmVjdD4KPC9zdmc+');"></div>
-              
-              <!-- Shine effect -->
-              <div style="position: absolute; top: -50%; left: -50%; right: -50%; bottom: -50%; 
-                         background: radial-gradient(ellipse at center, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 70%); 
-                         transform: rotate(-45deg);"></div>
-            </div>
-          </div>
-        </div>
-        
-        <div class="row">
-          <div class="col-md-6 mb-3">
-            <label class="form-label">Card Type</label>
-            <select class="form-select" name="cardType" id="cardTypeInput" required>
-              <option value="credit" ${cardType === 'credit' ? 'selected' : ''}>Credit Card</option>
-              <option value="debit" ${cardType === 'debit' ? 'selected' : ''}>Debit Card</option>
-            </select>
-          </div>
-          <div class="col-md-6 mb-3">
-            <label class="form-label">Card Brand</label>
-            <select class="form-select" name="cardBrand" id="cardBrandInput" required>
-              <option value="mastercard" ${cardBrand === 'mastercard' ? 'selected' : ''}>Mastercard</option>
-              <option value="visa" ${cardBrand === 'visa' ? 'selected' : ''}>Visa</option>
-              <option value="amex" ${cardBrand === 'amex' ? 'selected' : ''}>American Express</option>
-              <option value="other" ${cardBrand === 'other' ? 'selected' : ''}>Other</option>
-            </select>
-          </div>
-        </div>
-        
-        <div class="mb-3">
-          <label class="form-label">Card Color</label>
-          <input type="color" class="form-control form-control-color" name="cardColor" id="cardColorInput" 
-                 value="${cardColor}" style="width: 100%; max-width: 100px;">
-        </div>
-        
-        <div class="mb-3">
-          <label class="form-label">Cardholder Name</label>
-          <input type="text" class="form-control" name="cardholderName" id="cardholderNameInput" 
-                 value="${cardholderName}" required placeholder="Name on card">
-        </div>
-        
-        <div class="mb-3">
-          <label class="form-label">Card Number</label>
-          <input type="text" class="form-control" name="cardNumber" id="cardNumberInput" 
-                 value="${cardNumber}" required placeholder="1234 5678 9012 3456" maxlength="19">
-        </div>
-        
-        <div class="row">
-          <div class="col-md-6 mb-3">
-            <label class="form-label">Expiry Date</label>
-            <input type="text" class="form-control" name="expiryDate" id="expiryDateInput" 
-                  value="${expiryDate}" required placeholder="MM/YY" maxlength="5">
-          </div>
-          <div class="col-md-6 mb-3">
-            <label class="form-label">CVV/CVC</label>
-            <input type="password" class="form-control" name="cvv" id="cvvInput"
-                  value="${cvv}" required placeholder="123" maxlength="4">
-          </div>
-        </div>
-        
-        <div class="mb-3">
-          <label class="form-label">Notes (optional)</label>
-          <textarea class="form-control" name="notes" rows="2">${editing ? decrypt(card.notes || '') : ''}</textarea>
+    <div class="watchtower-container mx-auto" style="max-width:900px;">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h4 class="mb-1"><i class="bi bi-credit-card-fill me-2"></i> ${editing ? 'Edit' : 'New'} Payment Card</h4>
+          <p class="text-secondary mb-0">Create a secure payment card record</p>
         </div>
       </div>
       
-      <div class="d-flex">
-        <button class="btn btn-success me-2" type="submit">${editing ? "Save" : "Add"}</button>
-        <button class="btn btn-outline-secondary" type="button" id="cancelCardBtn">Cancel</button>
-      </div>
-    </form>
+      <form id="cardForm" autocomplete="off">
+        <div class="row g-4">
+          <!-- Card preview column -->
+          <div class="col-12 col-lg-6 mb-4">
+            <div class="card shadow-sm p-3">
+              <h5 class="mb-3">Card Preview</h5>
+              <!-- Improved card preview -->
+              <div class="card-preview-container">
+                <div class="credit-card" id="cardPreview" style="
+                  background: ${cardColor}; 
+                  width: 100%; 
+                  max-width: 380px; 
+                  height: 220px; 
+                  margin: 0 auto;
+                  border-radius: 16px;
+                  box-shadow: 0 12px 24px rgba(0,0,0,0.15);
+                  position: relative; 
+                  overflow: hidden;
+                  padding: 0;">
+                  
+                  <!-- Card content container -->
+                  <div style="position: relative; padding: 20px; height: 100%; width: 100%;
+                            display: flex; flex-direction: column; justify-content: space-between;
+                            color: ${textColor}; z-index: 2;">
+                    <!-- Top section -->
+                    <div class="d-flex justify-content-between align-items-start">
+                      <div id="previewCardType" style="font-size: 1.2rem; font-weight: 600; letter-spacing: 0.5px;">
+                        ${cardType === 'debit' ? 'Debit Card' : 'Credit Card'}
+                      </div>
+                      
+                      <!-- Card network logo in top right -->
+                      <div id="previewCardNetworkLogo" style="height: 32px;">
+                        ${renderCardBrandLogo(cardBrand, isDarkColor)}
+                      </div>
+                    </div>
+                    
+                    <!-- Chip section -->
+                    <div class="d-flex align-items-center mt-1 mb-1">
+                      <!-- EMV Chip -->
+                      <div style="
+                        width: 45px;
+                        height: 35px; 
+                        background: linear-gradient(135deg, #D4AF37 0%, #F4E5A7 50%, #D4AF37 100%); 
+                        border-radius: 5px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        box-shadow: 0 1px 2px rgba(0,0,0,0.2);">
+                        <div style="
+                          width: 80%; 
+                          height: 80%; 
+                          background: linear-gradient(90deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.1) 100%);
+                          border-radius: 2px;
+                          display: flex;
+                          flex-direction: column;
+                          justify-content: space-between;
+                          padding: 2px 0;">
+                          <div style="height: 2px; background: rgba(0,0,0,0.3);"></div>
+                          <div style="height: 2px; background: rgba(0,0,0,0.3);"></div>
+                          <div style="height: 2px; background: rgba(0,0,0,0.3);"></div>
+                        </div>
+                      </div>
+                      
+                      <!-- NFC icon -->
+                      <div style="display: flex; align-items: center; justify-content: center; margin-left: 15px; opacity: 0.8; height: 24px; width: 30px;">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M9 16C6.6 13 6.6 9 9 6" stroke="${textColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                          <path d="M6 18.5C2.5 14.5 2.5 8.5 6 4.5" stroke="${textColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                          <path d="M12 13.5C10.8 12 10.8 10 12 8.5" stroke="${textColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                      </div>
+                    </div>
+                    
+                    <!-- Card number -->
+                    <div style="position: relative; margin: 15px 0;">
+                      <div id="previewCardNumber" style="
+                        font-family: 'Courier New', monospace; 
+                        font-size: 1.5rem;
+                        letter-spacing: 1px;
+                        font-weight: 500;
+                        text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+                        white-space: nowrap;
+                        overflow: hidden;">
+                        ${formatCardNumberForDisplay(cardNumber || '0000 0000 0000 0000')}
+                      </div>
+                    </div>
+                    
+                    <!-- Bottom section -->
+                    <div class="d-flex justify-content-between align-items-end">
+                      <!-- Cardholder info -->
+                      <div>
+                        <div style="font-size: 0.7rem; text-transform: uppercase; opacity: 0.7; margin-bottom: 5px; letter-spacing: 0.05rem;">
+                          CARD HOLDER
+                        </div>
+                        <div id="previewCardholderName" style="font-size: 1.1rem; font-weight: 500; letter-spacing: 0.05rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px;">
+                          ${cardholderName || 'CARD HOLDER'}
+                        </div>
+                      </div>
+                      
+                      <!-- Expiry date -->
+                      <div>
+                        <div style="font-size: 0.7rem; text-transform: uppercase; opacity: 0.7; margin-bottom: 5px; letter-spacing: 0.05rem;">
+                          EXPIRES
+                        </div>
+                        <div id="previewExpiryDate" style="font-size: 1.1rem; font-weight: 500;">
+                          ${expiryDate || 'MM/YY'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Card background graphics -->
+                  <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 1; pointer-events: none;">
+                    <!-- Gradient overlay -->
+                    <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; 
+                               background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.1) 100%);"></div>
+                    
+                    <!-- Subtle pattern -->
+                    <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; 
+                               opacity: 0.03; 
+                               background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1IiBoZWlnaHQ9IjUiPgo8cmVjdCB3aWR0aD0iNSIgaGVpZ2h0PSI1IiBmaWxsPSIjZmZmIj48L3JlY3Q+CjxyZWN0IHdpZHRoPSIxIiBoZWlnaHQ9IjEiIGZpbGw9IiNjY2MiPjwvcmVjdD4KPC9zdmc+');"></div>
+                    
+                    <!-- Shine effect -->
+                    <div style="position: absolute; top: -50%; left: -50%; right: -50%; bottom: -50%; 
+                               background: radial-gradient(ellipse at center, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 70%); 
+                               transform: rotate(-45deg);"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Card form column -->
+          <div class="col-12 col-lg-6">
+            <div class="card shadow-sm p-3">
+              <h5 class="mb-3">Card Details</h5>
+              
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Card Type</label>
+                  <select class="form-select" name="cardType" id="cardTypeInput" required>
+                    <option value="credit" ${cardType === 'credit' ? 'selected' : ''}>Credit Card</option>
+                    <option value="debit" ${cardType === 'debit' ? 'selected' : ''}>Debit Card</option>
+                  </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Card Brand</label>
+                  <select class="form-select" name="cardBrand" id="cardBrandInput" required>
+                    <option value="mastercard" ${cardBrand === 'mastercard' ? 'selected' : ''}>Mastercard</option>
+                    <option value="visa" ${cardBrand === 'visa' ? 'selected' : ''}>Visa</option>
+                    <option value="amex" ${cardBrand === 'amex' ? 'selected' : ''}>American Express</option>
+                    <option value="other" ${cardBrand === 'other' ? 'selected' : ''}>Other</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div class="mb-3">
+                <label class="form-label">Card Color</label>
+                <input type="color" class="form-control form-control-color" name="cardColor" id="cardColorInput" 
+                       value="${cardColor}" style="width: 100%; max-width: 100px;">
+              </div>
+              
+              <div class="mb-3">
+                <label class="form-label">Cardholder Name</label>
+                <input type="text" class="form-control" name="cardholderName" id="cardholderNameInput" 
+                       value="${cardholderName}" required placeholder="Name on card">
+              </div>
+              
+              <div class="mb-3">
+                <label class="form-label">Card Number</label>
+                <input type="text" class="form-control" name="cardNumber" id="cardNumberInput" 
+                       value="${cardNumber}" required placeholder="1234 5678 9012 3456" maxlength="19">
+              </div>
+              
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Expiry Date</label>
+                  <input type="text" class="form-control" name="expiryDate" id="expiryDateInput" 
+                        value="${expiryDate}" required placeholder="MM/YY" maxlength="5">
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">CVV/CVC</label>
+                  <input type="password" class="form-control" name="cvv" id="cvvInput"
+                        value="${cvv}" required placeholder="123" maxlength="4">
+                </div>
+              </div>
+              
+              <div class="mb-3">
+                <label class="form-label">Notes (optional)</label>
+                <textarea class="form-control" name="notes" rows="2">${editing ? decrypt(card.notes || '') : ''}</textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="mt-4 text-center">
+          <button class="btn btn-success me-2" type="submit">${editing ? "Save Changes" : "Add Card"}</button>
+          <button class="btn btn-outline-secondary" type="button" id="cancelCardBtn">Cancel</button>
+        </div>
+        
+        <div class="mt-4 text-secondary small">
+          <i class="bi bi-info-circle"></i> Card information is securely encrypted and stored only on your device.
+        </div>
+      </form>
+    </div>
   `;
   
   // Add event listeners for live preview
@@ -1793,9 +1845,20 @@ function renderCardForm(editId) {
   }
   
   document.getElementById('cancelCardBtn').onclick = () => {
-    addEditMode = null;
-    renderDetails();
-  };
+  // Reset the form state
+  addEditMode = null;
+  
+  // Return to Payment Cards section if not already there
+  if (selectedFolder !== "cards") {
+    selectedFolder = "cards";
+  }
+  
+  // Reset any selected card
+  selectedPasswordId = null;
+  
+  // Restore normal layout and render all components
+  renderAll();
+};
   
   // Form submission handler with fixes for proper card data saving
   document.getElementById('cardForm').onsubmit = (e) => {
@@ -1850,7 +1913,6 @@ function renderCardForm(editId) {
     renderAll();
   };
 }
-
 // Update the formatCardNumberForDisplay function to better match the screenshot
 function formatCardNumberForDisplay(number) {
   if (typeof number !== 'string') return '• • • •   • • • •   • • • •   • • • •';
