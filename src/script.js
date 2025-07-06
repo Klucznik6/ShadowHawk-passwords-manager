@@ -556,11 +556,11 @@ function renderCardDetails(card) {
               
               <!-- NFC icon -->
               <div style="margin-left: 15px; opacity: 0.8;">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                  <path d="M8.5 14.5C7 12.5 7 9.5 8.5 7.5" stroke="${textColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M5.5 17.5C3 14.5 3 9.5 5.5 6.5" stroke="${textColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M2.5 20.5C-1 16.5 -1 7.5 2.5 3.5" stroke="${textColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M9 16C6.6 13 6.6 9 9 6" stroke="${textColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M6 18.5C2.5 14.5 2.5 8.5 6 4.5" stroke="${textColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M12 13.5C10.8 12 10.8 10 12 8.5" stroke="${textColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
               </div>
             </div>
             
@@ -1360,6 +1360,8 @@ function renderWatchtower(pane) {
   `;
 }
 
+// Fix for rendering deleted cards in the Recently Deleted view
+
 function renderDeletedItems(pane) {
   const deletedItems = getDeletedPasswords();
   
@@ -1405,15 +1407,32 @@ function renderDeletedItems(pane) {
     card.className = 'card shadow-sm mb-3';
     card.setAttribute('data-id', item.id);
     
+    // Check if it's a payment card or a regular password
+    const isCard = item.isCard;
+    const title = isCard ? decrypt(item.cardholderName || "") : decrypt(item.title || "");
+    const subtitle = isCard ? 
+      (decrypt(item.cardNumber || "").slice(-4) ? `•••• ${decrypt(item.cardNumber || "").slice(-4)}` : "Card") : 
+      decrypt(item.username || "");
+    
+    // Choose appropriate icon
+    let iconClass;
+    if (isCard) {
+      iconClass = item.cardBrand === 'visa' ? 'bi-credit-card-fill' : 
+                item.cardBrand === 'amex' ? 'bi-credit-card' : 
+                'bi-credit-card-2-front-fill';
+    } else {
+      iconClass = item.icon || 'bi-key';
+    }
+    
     card.innerHTML = `
       <div class="card-body">
         <div class="d-flex align-items-center">
           <div class="me-4">
-            <i class="pw-icon ${item.icon || 'bi-key'}" style="font-size: 2.5rem;"></i>
+            <i class="pw-icon ${iconClass}" style="font-size: 2.5rem;"></i>
           </div>
           <div class="flex-grow-1">
-            <h5 class="mb-0">${decrypt(item.title)}</h5>
-            <p class="text-secondary small mb-1">${decrypt(item.username)}</p>
+            <h5 class="mb-0">${title}</h5>
+            <p class="text-secondary small mb-1">${subtitle}</p>
             <div class="text-secondary smaller">
               Deleted: ${formattedDate} <span class="badge bg-light text-secondary">${timeAgo}</span>
             </div>
@@ -1445,14 +1464,14 @@ function renderDeletedItems(pane) {
   document.querySelectorAll('.restore-btn').forEach(btn => {
     btn.onclick = (e) => {
       e.preventDefault();
-      restoreDeletedPassword(btn.dataset.id);
+      restoreDeletedPassword(btn.getAttribute('data-id'));
     };
   });
   
   document.querySelectorAll('.delete-permanently-btn').forEach(btn => {
     btn.onclick = (e) => {
       e.preventDefault();
-      permanentlyDeletePassword(btn.dataset.id);
+      permanentlyDeletePassword(btn.getAttribute('data-id'));
     };
   });
   
