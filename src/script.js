@@ -84,11 +84,17 @@ function getEncryptionKey() {
   return key;
 }
 function encrypt(text) { return CryptoJS.AES.encrypt(text, getEncryptionKey()).toString(); }
+
 function decrypt(cipher) {
+  if (!cipher) return '';
+  
   try {
-    let bytes = CryptoJS.AES.decrypt(cipher, getEncryptionKey());
-    return bytes.toString(CryptoJS.enc.Utf8) || '[error]';
-  } catch { return '[error]'; }
+    const bytes = CryptoJS.AES.decrypt(cipher, getEncryptionKey());
+    const decrypted = bytes.toString(CryptoJS.enc.Utf8);
+    return decrypted || ''; // Return empty string if decryption gives empty result
+  } catch(e) {
+    return ''; // Return empty string instead of error
+  }
 }
 function defaultFolders() {
   return [
@@ -112,6 +118,7 @@ function saveFolders(folders) {
   if (!CURRENT_USER) return;
   localStorage.setItem(getFoldersKey(CURRENT_USER), JSON.stringify(folders));
 }
+// Update the getPasswords function to filter cards from "all" view
 function getPasswords(folderId, searchTerm="") {
   if (!CURRENT_USER) return [];
   let folders = getFolders();
@@ -129,22 +136,33 @@ function getPasswords(folderId, searchTerm="") {
     let unassignedItems = JSON.parse(localStorage.getItem(getPasswordsKey(CURRENT_USER, "unassigned")) || "[]");
     out.push(...unassignedItems.map(it => ({...it, folderId: "unassigned"})));
     
+    // Filter out any cards - cards should only be in the cards section
+    out = out.filter(item => !item.isCard);
+    
   } else if (folderId === "favorites") {
     // Include favorites from all folders and unassigned
     for (const fId of [...allFolders, "unassigned"]) {
       let items = JSON.parse(localStorage.getItem(getPasswordsKey(CURRENT_USER, fId)) || "[]");
       out.push(...items.filter(it => it.favorite).map(it => ({...it, folderId: fId})));
     }
+    
+    // Include favorites from cards folder too
+    let cardItems = JSON.parse(localStorage.getItem(getPasswordsKey(CURRENT_USER, "cards")) || "[]");
+    out.push(...cardItems.filter(it => it.favorite).map(it => ({...it, folderId: "cards"})));
+    
   } else {
+    // For any other folder, just get its items
     out = JSON.parse(localStorage.getItem(getPasswordsKey(CURRENT_USER, folderId)) || "[]");
   }
   
-  // Rest of your function stays the same
+  // Filter by search term if provided
   if (searchTerm?.trim()) {
     const q = searchTerm.trim().toLowerCase();
     out = out.filter(pw =>
       decrypt(pw.title||"").toLowerCase().includes(q) ||
-      decrypt(pw.username||"").toLowerCase().includes(q)
+      decrypt(pw.username||"").toLowerCase().includes(q) ||
+      // For cards, also search cardholder name
+      (pw.isCard && decrypt(pw.cardholderName||"").toLowerCase().includes(q))
     );
   }
   return out;
@@ -348,7 +366,7 @@ function renderDetails() {
       </div>
       <div class="mb-2">
         <label class="form-label mt-2">Notes</label>
-        <textarea class="form-control" rows="2" readonly>${decrypt(item.notes||"")}</textarea>
+        <textarea class="form-control" rows="2" readonly>${decrypt(item.notes||"") || ''}</textarea>
       </div>
       <div class="pw-actions d-flex">
         <button class="btn btn-outline-info" id="editPwBtn"><i class="bi bi-pencil"></i> Edit</button>
@@ -628,7 +646,7 @@ function renderCardDetails(card) {
       
       <div class="mb-3">
         <label class="form-label">Notes</label>
-        <textarea class="form-control" rows="2" readonly>${decrypt(card.notes||"")}</textarea>
+        <textarea class="form-control" rows="2" readonly>${decrypt(card.notes||"") || ''}</textarea>
       </div>
     </div>
     
@@ -703,6 +721,7 @@ function isColorDark(hexColor) {
   const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
   return luminance < 0.5; // Dark colors have luminance < 0.5
 }
+// Updated findPasswordById function to properly handle favorites
 function findPasswordById(id) {
   // Check current folder first
   if (selectedFolder !== "all" && selectedFolder !== "favorites" && selectedFolder !== "watchtower") {
@@ -711,6 +730,24 @@ function findPasswordById(id) {
     if (found) {
       return { ...found, folderId: selectedFolder };
     }
+  }
+  
+  // Special handling for favorites
+  if (selectedFolder === "favorites") {
+    // Get all favorites from all folders including cards
+    const favoritesItems = getPasswords("favorites");
+    const found = favoritesItems.find(p => p.id === id);
+    if (found) {
+      // Keep the original folder ID in the returned item
+      return found;
+    }
+  }
+  
+  // Check the cards folder explicitly
+  const cardItems = getPasswords("cards");
+  const foundCard = cardItems.find(p => p.id === id);
+  if (foundCard) {
+    return { ...foundCard, folderId: "cards" };
   }
   
   // Then check all regular folders
@@ -755,6 +792,7 @@ function deletePassword(pw, folderId) {
   }
 }
 
+// Update the restoreDeletedPassword function to handle cards properly
 function restoreDeletedPassword(id) {
   const deletedItems = getDeletedPasswords();
   const itemIndex = deletedItems.findIndex(p => p.id === id);
@@ -762,22 +800,32 @@ function restoreDeletedPassword(id) {
   if (itemIndex >= 0) {
     const item = deletedItems[itemIndex];
     
-    // Find folder to restore to (or use "unassigned" if it was from "All Items")
-    const folders = getFolders().filter(f => !f.system);
-    let targetFolderId = item.originalFolderId;
-    let restorationMessage = 'original folder';
+    // Determine target folder for restoration
+    let targetFolderId;
+    let restorationMessage;
     
-    // Check if the original folder still exists (and wasn't "unassigned")
-    if (targetFolderId === "unassigned") {
-      // Item was in "All Items" view, keep it in "unassigned"
-      restorationMessage = 'All Items';
+    // If it's a card, always restore to the cards folder
+    if (item.isCard) {
+      targetFolderId = "cards"; // Always restore cards to the cards folder
+      restorationMessage = 'Payment Cards';
     } else {
-      // For regular folders, check if they still exist
-      const folderExists = folders.some(f => f.id === targetFolderId);
-      if (!folderExists) {
-        // Original folder doesn't exist anymore, put in "unassigned" instead of first folder
-        targetFolderId = "unassigned";
-        restorationMessage = 'All Items (original folder no longer exists)';
+      // For regular passwords, try to restore to original folder if it exists
+      const folders = getFolders().filter(f => !f.system);
+      targetFolderId = item.originalFolderId;
+      restorationMessage = 'original folder';
+      
+      // Check if the original folder still exists (and wasn't "unassigned")
+      if (targetFolderId === "unassigned") {
+        // Item was in "All Items" view, keep it in "unassigned"
+        restorationMessage = 'All Items';
+      } else {
+        // For regular folders, check if they still exist
+        const folderExists = folders.some(f => f.id === targetFolderId);
+        if (!folderExists) {
+          // Original folder doesn't exist anymore, put in "unassigned" instead
+          targetFolderId = "unassigned";
+          restorationMessage = 'All Items (original folder no longer exists)';
+        }
       }
     }
     
