@@ -271,7 +271,7 @@ function extractWebsiteNameFromURL(url) {
   }
 }
 
-// Updated renderPasswordsList function 
+// Updated renderPasswordsList function
 function renderPasswordsList() {
   const list = document.getElementById('passwordsList');
   let searchTerm = document.getElementById('searchInput')?.value || "";
@@ -289,13 +289,13 @@ function renderPasswordsList() {
     if (pw.id === selectedPasswordId) li.classList.add("selected");
     
     // Different display for cards vs passwords
-    let icon, title, subtitle, websiteUrl;
+    let iconElement, title, subtitle, websiteUrl = '';
     
     if (pw.isCard) {
       // This is a payment card
-      icon = pw.cardBrand === 'visa' ? 'bi-credit-card-fill' : 
-             pw.cardBrand === 'amex' ? 'bi-credit-card' : 
-             'bi-credit-card-2-front-fill';
+      let iconClass = pw.cardBrand === 'visa' ? 'bi-credit-card-fill' : 
+                     pw.cardBrand === 'amex' ? 'bi-credit-card' : 
+                     'bi-credit-card-2-front-fill';
       
       title = decrypt(pw.cardholderName);
       
@@ -306,19 +306,22 @@ function renderPasswordsList() {
       
       // For cards, use regular icon rendering
       let fav = pw.favorite ? "" : "inactive";
-      li.innerHTML = `<i class="pw-icon bi ${icon}"></i>
+      iconElement = `<i class="pw-icon bi ${iconClass}"></i>`;
+      
+      li.innerHTML = `${iconElement}
         <div class="flex-grow-1">
           <div class="item-title">${title}</div>
           <div class="item-sub">${subtitle}</div>
         </div>
         <i class="pw-fav bi bi-star-fill ${fav}" title="Favorite"></i>`;
     } else {
-      // Regular password - attempt to use website favicon
+      // Regular password - attempt to use website favicon or letter icon
       let fullTitle = decrypt(pw.title || "");
       subtitle = decrypt(pw.username || "");
-      websiteUrl = '';
       
       // Extract domain name from URL if it looks like one
+      let isWebsite = false;
+      
       if (fullTitle.includes('http') || 
           fullTitle.includes('.com') || 
           fullTitle.includes('.org') || 
@@ -327,38 +330,56 @@ function renderPasswordsList() {
         // Store the full URL for favicon but show only the domain name
         websiteUrl = fullTitle;
         title = extractWebsiteNameFromURL(fullTitle);
+        isWebsite = true;
       } else {
         // Not a URL, use the title as-is
         title = fullTitle;
       }
       
-      // If we have a URL, try to get a favicon
-      if (websiteUrl) {
+      // Create the icon element
+      if (isWebsite && websiteUrl) {
+        // Use favicon for websites
         const faviconUrl = getFaviconUrl(websiteUrl);
-        
-        // Use favicon with fallback to default icon
-        let fav = pw.favorite ? "" : "inactive";
-        li.innerHTML = `
-          <div class="pw-favicon me-2">
-            <img src="${faviconUrl}" onerror="this.onerror=null; this.src=''; this.classList.add('bi', 'bi-globe');" 
-                style="width: 22px; height: 22px; object-fit: contain;">
-          </div>
-          <div class="flex-grow-1">
-            <div class="item-title">${title}</div>
-            <div class="item-sub">${subtitle}</div>
-          </div>
-          <i class="pw-fav bi bi-star-fill ${fav}" title="Favorite"></i>`;
+        iconElement = `<div class="pw-favicon me-2">
+          <img src="${faviconUrl}" onerror="this.onerror=null; this.src=''; this.classList.add('bi', 'bi-globe');" 
+              style="width: 22px; height: 22px; object-fit: contain;">
+        </div>`;
       } else {
-        // Default to regular icon if no website URL
-        icon = pickIcon(idx);
-        let fav = pw.favorite ? "" : "inactive";
-        li.innerHTML = `<i class="pw-icon bi ${icon}"></i>
-          <div class="flex-grow-1">
-            <div class="item-title">${title}</div>
-            <div class="item-sub">${subtitle}</div>
-          </div>
-          <i class="pw-fav bi bi-star-fill ${fav}" title="Favorite"></i>`;
+        // Use colored letter icon for non-websites
+        const firstLetter = title.charAt(0).toUpperCase();
+        const colorIndex = title.length % 10; // Get a consistent color based on title length
+        const colors = [
+          '#4285F4', '#EA4335', '#FBBC05', '#34A853', // Google colors
+          '#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c' // More vibrant colors
+        ];
+        const bgColor = colors[colorIndex];
+        
+        iconElement = `<div class="pw-favicon me-2">
+          <div class="pw-icon-box" style="
+            width: 22px;
+            height: 22px;
+            background-color: ${bgColor};
+            border-radius: 6px;
+            color: white;
+            font-size: 12px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 3px rgba(0,0,0,0.1);
+          ">${firstLetter}</div>
+        </div>`;
       }
+      
+      // Build list item with correct icon
+      let fav = pw.favorite ? "" : "inactive";
+      li.innerHTML = `
+        ${iconElement}
+        <div class="flex-grow-1">
+          <div class="item-title">${title}</div>
+          <div class="item-sub">${subtitle}</div>
+        </div>
+        <i class="pw-fav bi bi-star-fill ${fav}" title="Favorite"></i>`;
     }
     
     li.onclick = (e) => {
@@ -391,6 +412,7 @@ function toggleFavorite(pw, folderId) {
 
 // Modify the renderDetails function to add card support
 // Updated renderDetails function to hide URL and show favicon
+// Updated renderDetails function to show consistent graphics for non-URL passwords
 function renderDetails() {
   const pane = document.getElementById('detailPane');
   
@@ -454,7 +476,7 @@ function renderDetails() {
     // Original password details view
     let fullTitle = decrypt(item.title || "");
     let displayTitle = fullTitle;
-    let icon = pickIcon(0);
+    let isWebsite = false;
     let faviconUrl = null;
     
     // Check if title is a URL and get clean display name and favicon
@@ -469,6 +491,7 @@ function renderDetails() {
       
       // Get favicon URL
       faviconUrl = getFaviconUrl(fullTitle);
+      isWebsite = true;
     }
     
     // Check if notes exist and are not empty
@@ -480,14 +503,42 @@ function renderDetails() {
       </div>
     ` : '';
     
-    // Create icon element - either favicon or default icon
-    const iconElement = faviconUrl ? 
-      `<img src="${faviconUrl}" class="pw-icon-img" onerror="this.onerror=null; this.src=''; this.classList.add('bi', 'bi-globe');" style="width: 48px; height: 48px; object-fit: contain;">` :
-      `<i class="pw-icon bi ${icon}"></i>`;
+    // Choose the appropriate icon display
+    let iconDisplay;
+    if (isWebsite && faviconUrl) {
+      // For websites with favicons, use the favicon
+      iconDisplay = `<img src="${faviconUrl}" class="pw-icon-img" onerror="this.onerror=null; this.src=''; this.classList.add('bi', 'bi-globe');" style="width: 48px; height: 48px; object-fit: contain;">`;
+    } else {
+      // For non-website passwords, use a colored icon box with first letter
+      const firstLetter = displayTitle.charAt(0).toUpperCase();
+      const colorIndex = displayTitle.length % 10; // Get a consistent color based on title length
+      const colors = [
+        '#4285F4', '#EA4335', '#FBBC05', '#34A853', // Google colors
+        '#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c' // More vibrant colors
+      ];
+      const bgColor = colors[colorIndex];
+      
+      iconDisplay = `
+        <div class="pw-icon-box" style="
+          width: 60px;
+          height: 60px;
+          background-color: ${bgColor};
+          border-radius: 12px;
+          color: white;
+          font-size: 28px;
+          font-weight: 600;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+          margin: 0 auto;
+        ">${firstLetter}</div>
+      `;
+    }
     
     pane.innerHTML = `
       <div class="mb-4 text-center">
-        ${iconElement}
+        ${iconDisplay}
         <div class="fs-4 mt-2 fw-bold">${displayTitle}</div>
         <div class="small text-muted">${decrypt(item.username)}</div>
       </div>
@@ -543,7 +594,6 @@ function renderDetails() {
     };
   }
 }
-
 // Add this helper function for rendering card brand logos properly
 // Replace the renderCardBrandLogo function with this improved version
 // Update the renderCardBrandLogo function with the HTML/CSS approach
@@ -1617,8 +1667,29 @@ function renderDeletedItems(pane) {
       // Use website favicon
       iconHTML = `<img src="${faviconUrl}" class="pw-icon-img" onerror="this.onerror=null; this.src=''; this.classList.add('bi', 'bi-globe');" style="width: 40px; height: 40px; object-fit: contain;">`;
     } else {
-      // Use default icon
-      iconHTML = `<i class="pw-icon bi bi-key-fill" style="font-size: 2.5rem;"></i>`;
+      // Use colored letter icon for non-websites
+      const firstLetter = displayTitle.charAt(0).toUpperCase();
+      const colorIndex = displayTitle.length % 10; // Get a consistent color based on title length
+      const colors = [
+        '#4285F4', '#EA4335', '#FBBC05', '#34A853', // Google colors
+        '#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c' // More vibrant colors
+      ];
+      const bgColor = colors[colorIndex];
+      
+      iconHTML = `
+        <div class="pw-icon-box" style="
+          width: 40px;
+          height: 40px;
+          background-color: ${bgColor};
+          border-radius: 8px;
+          color: white;
+          font-size: 20px;
+          font-weight: 600;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 3px 5px rgba(0,0,0,0.1);
+        ">${firstLetter}</div>`;
     }
     
     card.innerHTML = `
