@@ -234,6 +234,44 @@ function renderFolders() {
   });
 }
 
+// Add this function to extract website name from URL
+function extractWebsiteNameFromURL(url) {
+  try {
+    // Remove protocol
+    let domain = url;
+    if (domain.includes('://')) {
+      domain = domain.split('://')[1];
+    }
+    
+    // Remove path
+    if (domain.includes('/')) {
+      domain = domain.split('/')[0];
+    }
+    
+    // Remove www. prefix if present
+    if (domain.startsWith('www.')) {
+      domain = domain.substring(4);
+    }
+    
+    // Remove subdomains (keep only main domain and TLD)
+    const parts = domain.split('.');
+    if (parts.length > 2) {
+      // For domains like login.example.com, get example.com
+      domain = parts.slice(-2).join('.');
+    }
+    
+    // Capitalize first letter
+    if (domain && domain.length > 0) {
+      domain = domain.charAt(0).toUpperCase() + domain.slice(1);
+    }
+    
+    return domain;
+  } catch (e) {
+    return url; // Return original if parsing fails
+  }
+}
+
+// Updated renderPasswordsList function 
 function renderPasswordsList() {
   const list = document.getElementById('passwordsList');
   let searchTerm = document.getElementById('searchInput')?.value || "";
@@ -251,7 +289,7 @@ function renderPasswordsList() {
     if (pw.id === selectedPasswordId) li.classList.add("selected");
     
     // Different display for cards vs passwords
-    let icon, title, subtitle;
+    let icon, title, subtitle, websiteUrl;
     
     if (pw.isCard) {
       // This is a payment card
@@ -276,14 +314,22 @@ function renderPasswordsList() {
         <i class="pw-fav bi bi-star-fill ${fav}" title="Favorite"></i>`;
     } else {
       // Regular password - attempt to use website favicon
-      title = decrypt(pw.title || "");
+      let fullTitle = decrypt(pw.title || "");
       subtitle = decrypt(pw.username || "");
+      websiteUrl = '';
       
-      // Try to extract a website URL from the title
-      let websiteUrl = '';
-      if (title.includes('http') || title.includes('.com') || title.includes('.org') || 
-          title.includes('.net') || title.includes('.io')) {
-        websiteUrl = title;
+      // Extract domain name from URL if it looks like one
+      if (fullTitle.includes('http') || 
+          fullTitle.includes('.com') || 
+          fullTitle.includes('.org') || 
+          fullTitle.includes('.net') || 
+          fullTitle.includes('.io')) {
+        // Store the full URL for favicon but show only the domain name
+        websiteUrl = fullTitle;
+        title = extractWebsiteNameFromURL(fullTitle);
+      } else {
+        // Not a URL, use the title as-is
+        title = fullTitle;
       }
       
       // If we have a URL, try to get a favicon
@@ -344,6 +390,7 @@ function toggleFavorite(pw, folderId) {
 }
 
 // Modify the renderDetails function to add card support
+// Updated renderDetails function to hide URL and show favicon
 function renderDetails() {
   const pane = document.getElementById('detailPane');
   
@@ -405,7 +452,24 @@ function renderDetails() {
     renderCardDetails(item);
   } else {
     // Original password details view
+    let fullTitle = decrypt(item.title || "");
+    let displayTitle = fullTitle;
     let icon = pickIcon(0);
+    let faviconUrl = null;
+    
+    // Check if title is a URL and get clean display name and favicon
+    if (fullTitle.includes('http') || 
+        fullTitle.includes('.com') || 
+        fullTitle.includes('.org') || 
+        fullTitle.includes('.net') || 
+        fullTitle.includes('.io')) {
+      
+      // For display, show just the domain name
+      displayTitle = extractWebsiteNameFromURL(fullTitle);
+      
+      // Get favicon URL
+      faviconUrl = getFaviconUrl(fullTitle);
+    }
     
     // Check if notes exist and are not empty
     const notesContent = decrypt(item.notes || "");
@@ -416,10 +480,15 @@ function renderDetails() {
       </div>
     ` : '';
     
+    // Create icon element - either favicon or default icon
+    const iconElement = faviconUrl ? 
+      `<img src="${faviconUrl}" class="pw-icon-img" onerror="this.onerror=null; this.src=''; this.classList.add('bi', 'bi-globe');" style="width: 48px; height: 48px; object-fit: contain;">` :
+      `<i class="pw-icon bi ${icon}"></i>`;
+    
     pane.innerHTML = `
       <div class="mb-4 text-center">
-        <i class="pw-icon bi ${icon}"></i>
-        <div class="fs-4 mt-2 fw-bold">${decrypt(item.title)}</div>
+        ${iconElement}
+        <div class="fs-4 mt-2 fw-bold">${displayTitle}</div>
         <div class="small text-muted">${decrypt(item.username)}</div>
       </div>
       <div class="mb-4">
@@ -549,6 +618,9 @@ function renderCardBrandLogo(cardBrand, isDark) {
 }
 
 // Replace the renderCardDetails function with this improved version
+// Updated renderCardDetails function to hide website URL except in edit mode
+// Updated renderCardDetails function to completely hide the website URL in detail view
+// Updated renderCardDetails function to completely hide the website URL in detail view
 function renderCardDetails(card) {
   const pane = document.getElementById('detailPane');
   const cardholderName = decrypt(card.cardholderName);
@@ -571,6 +643,8 @@ function renderCardDetails(card) {
   // Calculate appropriate text color based on background
   const isDarkColor = isColorDark(cardColor);
   const textColor = isDarkColor ? '#ffffff' : '#000000';
+  
+  // Note: We don't show the website URL at all in the details view
   
   pane.innerHTML = `
     <div class="mb-4">
@@ -782,7 +856,6 @@ function renderCardDetails(card) {
     });
   };
 }
-
 // Helper function to determine if a color is dark or light
 function isColorDark(hexColor) {
   // Convert hex to RGB
@@ -1507,29 +1580,55 @@ function renderDeletedItems(pane) {
     
     // Check if it's a payment card or a regular password
     const isCard = item.isCard;
-    const title = isCard ? decrypt(item.cardholderName || "") : decrypt(item.title || "");
+    
+    // Extract title and determine if it's a URL
+    let fullTitle = isCard ? decrypt(item.cardholderName || "") : decrypt(item.title || "");
+    let displayTitle = fullTitle;
+    let faviconUrl = null;
+    
+    // Check if title is a URL and get clean display name and favicon
+    if (!isCard && (fullTitle.includes('http') || 
+        fullTitle.includes('.com') || 
+        fullTitle.includes('.org') || 
+        fullTitle.includes('.net') || 
+        fullTitle.includes('.io'))) {
+      
+      // For display, show just the domain name
+      displayTitle = extractWebsiteNameFromURL(fullTitle);
+      
+      // Get favicon URL
+      faviconUrl = getFaviconUrl(fullTitle);
+    }
+    
     const subtitle = isCard ? 
       (decrypt(item.cardNumber || "").slice(-4) ? `•••• ${decrypt(item.cardNumber || "").slice(-4)}` : "Card") : 
       decrypt(item.username || "");
     
-    // Choose appropriate icon
-    let iconClass;
+    // Prepare icon HTML
+    let iconHTML;
+    
     if (isCard) {
-      iconClass = item.cardBrand === 'visa' ? 'bi-credit-card-fill' : 
-                item.cardBrand === 'amex' ? 'bi-credit-card' : 
-                'bi-credit-card-2-front-fill';
+      // Use card type icon
+      const iconClass = item.cardBrand === 'visa' ? 'bi-credit-card-fill' : 
+                        item.cardBrand === 'amex' ? 'bi-credit-card' : 
+                        'bi-credit-card-2-front-fill';
+      iconHTML = `<i class="pw-icon ${iconClass}" style="font-size: 2.5rem;"></i>`;
+    } else if (faviconUrl) {
+      // Use website favicon
+      iconHTML = `<img src="${faviconUrl}" class="pw-icon-img" onerror="this.onerror=null; this.src=''; this.classList.add('bi', 'bi-globe');" style="width: 40px; height: 40px; object-fit: contain;">`;
     } else {
-      iconClass = item.icon || 'bi-key';
+      // Use default icon
+      iconHTML = `<i class="pw-icon bi bi-key-fill" style="font-size: 2.5rem;"></i>`;
     }
     
     card.innerHTML = `
       <div class="card-body">
         <div class="d-flex align-items-center">
           <div class="me-4">
-            <i class="pw-icon ${iconClass}" style="font-size: 2.5rem;"></i>
+            ${iconHTML}
           </div>
           <div class="flex-grow-1">
-            <h5 class="mb-0">${title}</h5>
+            <h5 class="mb-0">${displayTitle}</h5>
             <p class="text-secondary small mb-1">${subtitle}</p>
             <div class="text-secondary smaller">
               Deleted: ${formattedDate} <span class="badge bg-light text-secondary">${timeAgo}</span>
@@ -1577,7 +1676,7 @@ function renderDeletedItems(pane) {
     e.preventDefault();
     showConfirmModal("Permanently delete all items in trash?", () => {
       saveDeletedPasswords([]);
-      renderAll();
+      renderDeletedItems(pane);
     });
   };
 }
@@ -1828,7 +1927,14 @@ function renderCardForm(editId) {
               </div>
               
               <div class="mb-3">
-                <label class="form-label">Notes (optional)</label>
+                <label class="form-label">Website URL (optional)</label>
+                <input type="text" class="form-control" name="website" id="websiteInput" 
+                       value="${editing ? decrypt(card.website || '') : ''}" placeholder="https://example.com">
+                <div class="form-text">Link to the card issuer's website</div>
+              </div>
+              
+              <div class="mb-3">
+                <label class="form-label">Notes</label>
                 <textarea class="form-control" name="notes" rows="2">${editing ? decrypt(card.notes || '') : ''}</textarea>
               </div>
             </div>
@@ -1951,6 +2057,7 @@ function renderCardForm(editId) {
       cardNumber: encrypt(data.cardNumber),
       expiryDate: encrypt(data.expiryDate),
       cvv: encrypt(data.cvv),
+      website: encrypt(data.website || ""), // Make sure this line is included
       notes: encrypt(data.notes || ""),
       cardType: data.cardType,
       cardBrand: data.cardBrand,
@@ -1958,7 +2065,7 @@ function renderCardForm(editId) {
       created: editing ? card.created : now,
       updated: now,
       favorite: editing ? card.favorite || false : false,
-      isCard: true, // Flag to identify it as a card
+      isCard: true, 
       folderId: folderId
     };
     

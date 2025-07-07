@@ -576,3 +576,12 @@ html, body, #app {
   background-color: var(--bs-primary);
   color: white;
 }
+
+.pw-icon-img {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  object-fit: contain;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  background-color: rgba(0,0,0,0.02);
+}
