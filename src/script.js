@@ -350,6 +350,16 @@ function renderDetails() {
   } else {
     // Original password details view
     let icon = pickIcon(0);
+    
+    // Check if notes exist and are not empty
+    const notesContent = decrypt(item.notes || "");
+    const notesSection = notesContent ? `
+      <div class="mb-2">
+        <label class="form-label mt-2">Notes</label>
+        <textarea class="form-control" rows="2" readonly>${notesContent}</textarea>
+      </div>
+    ` : '';
+    
     pane.innerHTML = `
       <div class="mb-4 text-center">
         <i class="pw-icon bi ${icon}"></i>
@@ -364,10 +374,10 @@ function renderDetails() {
           <button class="btn btn-outline-secondary" id="copyPwBtn" title="Copy"><i class="bi bi-clipboard"></i></button>
         </div>
       </div>
-      <div class="mb-2">
-        <label class="form-label mt-2">Notes</label>
-        <textarea class="form-control" rows="2" readonly>${decrypt(item.notes||"") || ''}</textarea>
-      </div>
+      
+      <!-- Notes section conditionally rendered -->
+      ${notesSection}
+      
       <div class="pw-actions d-flex">
         <button class="btn btn-outline-info" id="editPwBtn"><i class="bi bi-pencil"></i> Edit</button>
         <button class="btn btn-outline-danger" id="deletePwBtn"><i class="bi bi-trash"></i> Delete</button>
@@ -377,6 +387,7 @@ function renderDetails() {
         <br>Modified: ${item.updated || "-"}
       </div>
     `;
+    
     // Show/Hide password logic
     const showBtn = document.getElementById('showHidePwBtn');
     const pwInput = document.getElementById('detailPassword');
@@ -491,6 +502,15 @@ function renderCardDetails(card) {
   const cardType = card.cardType || "credit";
   const cardBrand = card.cardBrand || "mastercard";
   const cardColor = card.cardColor || "#000000";
+  
+  // Check if there are any notes and only include the notes section if there are
+  const notesContent = decrypt(card.notes || "");
+  const notesSection = notesContent ? `
+    <div class="mb-3">
+      <label class="form-label">Notes</label>
+      <textarea class="form-control" rows="2" readonly>${notesContent}</textarea>
+    </div>
+  ` : '';
   
   // Calculate appropriate text color based on background
   const isDarkColor = isColorDark(cardColor);
@@ -644,10 +664,8 @@ function renderCardDetails(card) {
         </div>
       </div>
       
-      <div class="mb-3">
-        <label class="form-label">Notes</label>
-        <textarea class="form-control" rows="2" readonly>${decrypt(card.notes||"") || ''}</textarea>
-      </div>
+      <!-- Notes section - conditionally included -->
+      ${notesSection}
     </div>
     
     <div class="pw-actions d-flex">
