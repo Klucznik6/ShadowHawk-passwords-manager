@@ -182,7 +182,23 @@ function saveDeletedPasswords(items) {
   if (!CURRENT_USER) return;
   localStorage.setItem(getDeletedPasswordsKey(CURRENT_USER), JSON.stringify(items));
 }
-
+function getFaviconUrl(url) {
+  try {
+    // Try to extract the domain from a URL
+    let domain = url;
+    if (url.includes('://')) {
+      domain = url.split('://')[1];
+    }
+    if (domain.includes('/')) {
+      domain = domain.split('/')[0];
+    }
+    
+    // Use Google's favicon service
+    return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+  } catch (e) {
+    return null;
+  }
+}
 // --- UI state ---
 let selectedFolder = "all";
 let selectedPasswordId = null;
@@ -223,10 +239,12 @@ function renderPasswordsList() {
   let searchTerm = document.getElementById('searchInput')?.value || "";
   const passwords = getPasswords(selectedFolder, searchTerm);
   list.innerHTML = "";
+  
   if (passwords.length === 0) {
     list.innerHTML = `<li class="text-muted text-center py-4">No passwords.</li>`;
     return;
   }
+  
   passwords.forEach((pw, idx) => {
     let li = document.createElement('li');
     li.className = "d-flex";
@@ -247,20 +265,56 @@ function renderPasswordsList() {
       const cardNum = decrypt(pw.cardNumber);
       const lastFour = cardNum.replace(/\s/g, '').slice(-4);
       subtitle = `${pw.cardType === 'credit' ? 'Credit' : 'Debit'} •••• ${lastFour}`;
+      
+      // For cards, use regular icon rendering
+      let fav = pw.favorite ? "" : "inactive";
+      li.innerHTML = `<i class="pw-icon bi ${icon}"></i>
+        <div class="flex-grow-1">
+          <div class="item-title">${title}</div>
+          <div class="item-sub">${subtitle}</div>
+        </div>
+        <i class="pw-fav bi bi-star-fill ${fav}" title="Favorite"></i>`;
     } else {
-      // Regular password
-      icon = pickIcon(idx);
-      title = decrypt(pw.title);
-      subtitle = decrypt(pw.username);
+      // Regular password - attempt to use website favicon
+      title = decrypt(pw.title || "");
+      subtitle = decrypt(pw.username || "");
+      
+      // Try to extract a website URL from the title
+      let websiteUrl = '';
+      if (title.includes('http') || title.includes('.com') || title.includes('.org') || 
+          title.includes('.net') || title.includes('.io')) {
+        websiteUrl = title;
+      }
+      
+      // If we have a URL, try to get a favicon
+      if (websiteUrl) {
+        const faviconUrl = getFaviconUrl(websiteUrl);
+        
+        // Use favicon with fallback to default icon
+        let fav = pw.favorite ? "" : "inactive";
+        li.innerHTML = `
+          <div class="pw-favicon me-2">
+            <img src="${faviconUrl}" onerror="this.onerror=null; this.src=''; this.classList.add('bi', 'bi-globe');" 
+                style="width: 22px; height: 22px; object-fit: contain;">
+          </div>
+          <div class="flex-grow-1">
+            <div class="item-title">${title}</div>
+            <div class="item-sub">${subtitle}</div>
+          </div>
+          <i class="pw-fav bi bi-star-fill ${fav}" title="Favorite"></i>`;
+      } else {
+        // Default to regular icon if no website URL
+        icon = pickIcon(idx);
+        let fav = pw.favorite ? "" : "inactive";
+        li.innerHTML = `<i class="pw-icon bi ${icon}"></i>
+          <div class="flex-grow-1">
+            <div class="item-title">${title}</div>
+            <div class="item-sub">${subtitle}</div>
+          </div>
+          <i class="pw-fav bi bi-star-fill ${fav}" title="Favorite"></i>`;
+      }
     }
     
-    let fav = pw.favorite ? "" : "inactive";
-    li.innerHTML = `<i class="pw-icon bi ${icon}"></i>
-      <div class="flex-grow-1">
-        <div class="item-title">${title}</div>
-        <div class="item-sub">${subtitle}</div>
-      </div>
-      <i class="pw-fav bi bi-star-fill ${fav}" title="Favorite"></i>`;
     li.onclick = (e) => {
       if (e.target.classList.contains('pw-fav')) return;
       selectedPasswordId = pw.id;
@@ -268,12 +322,14 @@ function renderPasswordsList() {
       renderDetails();
       renderPasswordsList();
     };
+    
     li.querySelector('.pw-fav').onclick = (e) => {
       e.stopPropagation();
       toggleFavorite(pw, pw.folderId || selectedFolder);
       renderPasswordsList();
       renderDetails();
     };
+    
     list.appendChild(li);
   });
 }

@@ -547,3 +547,32 @@ html, body, #app {
   background-color: #2d3748 !important;
   color: #e2e8f0 !important;
 }
+
+.pw-favicon {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pw-favicon img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.icon-picker-menu .icon-option {
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.icon-picker-menu .icon-option:hover {
+  background-color: rgba(var(--bs-primary-rgb), 0.1);
+  transform: scale(1.1);
+}
+
+.icon-picker-menu .icon-option.selected {
+  background-color: var(--bs-primary);
+  color: white;
+}
