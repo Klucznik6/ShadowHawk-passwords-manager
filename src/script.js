@@ -384,7 +384,14 @@ function renderPasswordsList() {
     
     li.onclick = (e) => {
       if (e.target.classList.contains('pw-fav')) return;
-      selectedPasswordId = pw.id;
+      
+      // Toggle selection - if clicking the same item again, deselect it
+      if (selectedPasswordId === pw.id) {
+        selectedPasswordId = null;
+      } else {
+        selectedPasswordId = pw.id;
+      }
+      
       addEditMode = null;
       renderDetails();
       renderPasswordsList();
@@ -1397,13 +1404,13 @@ window.onbeforeunload = function() {
   CURRENT_USER = null;
   localStorage.removeItem(LOGGED_IN_KEY);
 };
-
 function exportPasswords() {
   if (!CURRENT_USER) return;
   const folders = getFolders();
   const exportData = {
     folders,
-    passwords: {}
+    passwords: {},
+    cards: [] // New array to store payment cards
   };
   
   // Export passwords from all real folders
@@ -1413,6 +1420,10 @@ function exportPasswords() {
   
   // Export unassigned passwords as well
   exportData.passwords["unassigned"] = getPasswords("unassigned");
+  
+  // Export cards from the cards system folder
+  const cardItems = getPasswords("cards");
+  exportData.cards = cardItems; // Add cards to export data
   
   const blob = new Blob([JSON.stringify(exportData, null, 2)], {type: "application/json"});
   const url = URL.createObjectURL(blob);
@@ -1452,8 +1463,23 @@ function importPasswords(json) {
       savePasswords(folderId, updatedPwds);
     }
     
+    // Import cards if present in the export data
+    if (data.cards && Array.isArray(data.cards)) {
+      // Get existing cards
+      const existingCards = getPasswords("cards");
+      
+      // Add the imported cards, ensuring they have the isCard flag
+      const importedCards = data.cards.map(card => ({...card, isCard: true, folderId: "cards"}));
+      
+      // Merge with existing cards
+      const mergedCards = [...existingCards, ...importedCards];
+      
+      // Save to cards folder
+      savePasswords("cards", mergedCards);
+    }
+    
     renderAll();
-    showInfoModal("Passwords imported successfully!");
+    showInfoModal("Passwords and cards imported successfully!");
   } catch (e) {
     showInfoModal("Import failed: " + (e.message || e));
   }
