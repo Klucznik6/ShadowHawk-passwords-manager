@@ -902,7 +902,7 @@ function renderCardDetails(card) {
   // Edit and Delete buttons
   document.getElementById('editCardBtn').onclick = (e) => {
     addEditMode = "edit";
-    renderDetails();
+    renderAll(); // Use renderAll instead of renderDetails to trigger full-width layout for cards
   };
   
   document.getElementById('deleteCardBtn').onclick = (e) => {
