@@ -1463,10 +1463,29 @@ function showInfoModal(message, onOk) {
   };
 }
 
+// Function to update the vaults shield icon based on theme
+function updateVaultsShieldIcon(theme) {
+  console.log('Updating vaults shield icon for theme:', theme);
+  const vaultsShieldIcon = document.getElementById('vaultsShieldIcon');
+  if (vaultsShieldIcon) {
+    if (theme === 'dark') {
+      vaultsShieldIcon.src = '../assets/darkIcon.png';
+    } else {
+      vaultsShieldIcon.src = '../assets/lightIcon.png';
+    }
+    console.log('Shield icon src updated to:', vaultsShieldIcon.src);
+  } else {
+    console.log('vaultsShieldIcon element not found');
+  }
+}
+
 // --- Theme persistence
 function setTheme(theme) {
   document.documentElement.setAttribute('data-bs-theme', theme);
   localStorage.setItem('pmx_theme', theme);
+  
+  // Update vaults shield icon based on theme
+  updateVaultsShieldIcon(theme);
   
   // Update button states
   if (theme === 'light') {
