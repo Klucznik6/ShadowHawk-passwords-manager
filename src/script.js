@@ -16,12 +16,12 @@ function hashPassword(password) {
 function getUsers() { return JSON.parse(localStorage.getItem(USERS_KEY) || "{}"); }
 function saveUsers(u) { localStorage.setItem(USERS_KEY, JSON.stringify(u)); }
 function generateRecoveryCode() {
-  // 12 random words or a long hex string
-  const words = [];
-  for (let i = 0; i < 12; i++) {
-    words.push(Math.random().toString(36).slice(2, 6));
+  // Generate 5 segments of 4 characters each (20 total chars, excluding dashes)
+  const segments = [];
+  for (let i = 0; i < 5; i++) {
+    segments.push(Math.random().toString(36).slice(2, 6));
   }
-  return words.join('-');
+  return segments.join('-');
 }
 function registerUser(username, password) {
   let users = getUsers();
@@ -1370,9 +1370,49 @@ function loadTheme() {
   });
 }
 
+// Password visibility toggle functionality
+function setupPasswordToggle() {
+  // Toggle for login/register password
+  const toggleAuthPassword = document.getElementById('toggleAuthPassword');
+  const authPasswordInput = document.getElementById('authPassword');
+  const authPasswordIcon = document.getElementById('authPasswordIcon');
+
+  if (toggleAuthPassword && authPasswordInput && authPasswordIcon) {
+    toggleAuthPassword.addEventListener('click', function() {
+      if (authPasswordInput.type === 'password') {
+        authPasswordInput.type = 'text';
+        authPasswordIcon.className = 'bi bi-eye-slash';
+      } else {
+        authPasswordInput.type = 'password';
+        authPasswordIcon.className = 'bi bi-eye';
+      }
+    });
+  }
+
+  // Toggle for recovery new password
+  const toggleNewPassword = document.getElementById('toggleNewPassword');
+  const newPasswordInput = document.getElementById('newPassword');
+  const newPasswordIcon = document.getElementById('newPasswordIcon');
+
+  if (toggleNewPassword && newPasswordInput && newPasswordIcon) {
+    toggleNewPassword.addEventListener('click', function() {
+      if (newPasswordInput.type === 'password') {
+        newPasswordInput.type = 'text';
+        newPasswordIcon.className = 'bi bi-eye-slash';
+      } else {
+        newPasswordInput.type = 'password';
+        newPasswordIcon.className = 'bi bi-eye';
+      }
+    });
+  }
+}
+
 // Settings modal logic
 document.addEventListener('DOMContentLoaded', () => {
   loadTheme();
+
+  // Password visibility toggle functionality
+  setupPasswordToggle();
 
   document.getElementById('settingsBtn').onclick = () => {
     document.getElementById('settingsModal').classList.remove('d-none');

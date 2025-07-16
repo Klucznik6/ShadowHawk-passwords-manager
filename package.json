@@ -1,28 +1,78 @@
 {
-  "name": "ShadowHawk",
+  "name": "shadowhawk-password-manager",
+  "productName": "ShadowHawk Password Manager",
   "version": "1.0.0",
+  "description": "A secure, local password manager built with Electron",
   "main": "main.js",
+  "homepage": "https://github.com/Klucznik6/ShadowHawk-passwords-manager#readme",
+  "author": {
+    "name": "Klucznik6",
+    "url": "https://github.com/Klucznik6"
+  },
+  "license": "MIT",
+  "private": true,
   "scripts": {
     "start": "electron .",
+    "dev": "set NODE_ENV=development && electron .",
     "build": "electron-builder",
-    "dist": "electron-builder --linux --x64",
-    "dist:win": "electron-builder --win --x64",
+    "build:win": "electron-builder --win --x64",
+    "build:mac": "electron-builder --mac --x64",
+    "build:linux": "electron-builder --linux --x64",
+    "pack": "electron-builder --dir",
+    "postinstall": "electron-builder install-app-deps",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Klucznik6/ShadowHawk-passwords-manager.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "MIT",
   "bugs": {
     "url": "https://github.com/Klucznik6/ShadowHawk-passwords-manager/issues"
   },
-  "homepage": "https://github.com/Klucznik6/ShadowHawk-passwords-manager#readme",
-  "description": "",
+  "keywords": [
+    "password-manager",
+    "security",
+    "encryption",
+    "electron",
+    "privacy",
+    "local-storage"
+  ],
+  "build": {
+    "appId": "com.klucznik6.shadowhawk",
+    "productName": "ShadowHawk Password Manager",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "src/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.ico"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "assets/icon.icns",
+      "category": "public.app-category.productivity"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "assets/icon.png",
+      "category": "Office"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  },
   "devDependencies": {
-    "electron": "^36.6.0"
+    "electron": "^36.6.0",
+    "electron-builder": "^25.1.8"
   },
   "dependencies": {
     "bootstrap": "^5.3.7",

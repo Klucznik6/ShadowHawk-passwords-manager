@@ -28,7 +28,12 @@
             </div>
             <div class="mb-3">
               <label for="authPassword" class="form-label">Password</label>
-              <input type="password" class="form-control" id="authPassword" required>
+              <div class="input-group">
+                <input type="password" class="form-control" id="authPassword" required>
+                <button class="btn btn-outline-secondary" type="button" id="toggleAuthPassword" title="Show/Hide Password">
+                  <i class="bi bi-eye" id="authPasswordIcon"></i>
+                </button>
+              </div>
             </div>
             <button type="submit" class="btn btn-primary w-100" id="authBtn">Login</button>
             <div id="authError" class="alert alert-danger mt-2 py-2 px-3 d-none" role="alert"></div>
@@ -166,7 +171,12 @@
             </div>
             <div class="mb-3">
               <label for="newPassword" class="form-label">New Password</label>
-              <input type="password" class="form-control" id="newPassword" required>
+              <div class="input-group">
+                <input type="password" class="form-control" id="newPassword" required>
+                <button class="btn btn-outline-secondary" type="button" id="toggleNewPassword" title="Show/Hide Password">
+                  <i class="bi bi-eye" id="newPasswordIcon"></i>
+                </button>
+              </div>
             </div>
             <button type="submit" class="btn btn-primary w-100">Reset Password</button>
             <div id="recoveryError" class="alert alert-danger mt-2 py-2 px-3 d-none" role="alert"></div>

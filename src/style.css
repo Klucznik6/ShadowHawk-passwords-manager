@@ -594,3 +594,39 @@ html, body, #app {
   transform: scale(1.05);
   box-shadow: 0 6px 10px rgba(0,0,0,0.15);
 }
+
+/* Password Toggle Button Styles */
+.input-group .btn-outline-secondary {
+  border-left: 0;
+  border-color: var(--border-color);
+  background-color: var(--bg-card);
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+}
+
+.input-group .btn-outline-secondary:hover {
+  background-color: var(--bg-list);
+  color: var(--text-primary);
+  border-color: var(--accent-primary);
+}
+
+.input-group .btn-outline-secondary:focus {
+  box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25);
+  border-color: var(--accent-primary);
+}
+
+.input-group .form-control:focus + .btn-outline-secondary {
+  border-color: var(--accent-primary);
+}
+
+/* Dark theme adjustments for password toggle */
+[data-bs-theme="dark"] .input-group .btn-outline-secondary {
+  background-color: var(--bg-card);
+  border-color: var(--border-color);
+  color: var(--text-secondary);
+}
+
+[data-bs-theme="dark"] .input-group .btn-outline-secondary:hover {
+  background-color: var(--bg-list);
+  color: var(--text-primary);
+}
