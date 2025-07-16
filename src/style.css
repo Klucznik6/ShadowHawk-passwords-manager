@@ -257,6 +257,16 @@ html, body, #app {
   cursor: pointer;
   transition: all 0.2s ease;
   color: var(--text-primary);
+  word-break: break-word;
+  overflow-wrap: break-word;
+  min-width: 0;
+}
+
+#foldersList li span {
+  word-break: break-word;
+  overflow-wrap: break-word;
+  flex: 1;
+  min-width: 0;
 }
 
 #foldersList li.selected {
@@ -374,12 +384,22 @@ html, body, #app {
 .app-passwords-list li .item-title {
   font-weight: 600;
   color: var(--text-primary);
+  word-break: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
 }
 
 .app-passwords-list li .item-sub {
   font-size: 0.95em;
   color: var(--text-secondary);
   margin-top: 3px;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.app-passwords-list li .flex-grow-1 {
+  min-width: 0;
+  overflow: hidden;
 }
 
 .app-passwords-list li .pw-fav {
@@ -548,6 +568,8 @@ html, body, #app {
   border-radius: 6px;
   padding: 8px;
   margin: 2px 0;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .infocenter-container .password-item:hover {
@@ -585,6 +607,8 @@ html, body, #app {
   border: none;
   border-radius: 12px;
   background: var(--bg-card);
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .card-body {
@@ -653,6 +677,8 @@ html, body, #app {
   border-radius: 12px;
   box-shadow: var(--shadow-md);
   transition: all 0.2s ease;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 #deletedItemsContainer .card:hover {
