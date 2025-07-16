@@ -130,7 +130,7 @@ function defaultFolders() {
     { id: "all", name: "All Items", icon: "bi-shield-lock-fill", system: true },
     { id: "favorites", name: "Favorites", icon: "bi-star-fill", system: true },
     { id: "cards", name: "Payment Cards", icon: "bi-credit-card-fill", system: true }, // New folder for cards
-    { id: "hackshield", name: "Hack Shield", icon: "bi-graph-up-arrow", system: true },
+    { id: "infocenter", name: "Info Center", icon: "bi-graph-up-arrow", system: true },
     { id: "deleted", name: "Recently Deleted", icon: "bi-trash", system: true }
   ];
 }
@@ -467,8 +467,8 @@ function toggleFavorite(pw, folderId) {
 function renderDetails() {
   const pane = document.getElementById('detailPane');
   
-  if (selectedFolder === "hackshield") {
-    renderHackShield(pane);
+  if (selectedFolder === "infocenter") {
+    renderInfoCenter(pane);
     return;
   }
   
@@ -972,7 +972,7 @@ function isColorDark(hexColor) {
 // Updated findPasswordById function to properly handle favorites
 function findPasswordById(id) {
   // Check current folder first
-  if (selectedFolder !== "all" && selectedFolder !== "favorites" && selectedFolder !== "hackshield") {
+  if (selectedFolder !== "all" && selectedFolder !== "favorites" && selectedFolder !== "infocenter") {
     const folderItems = getPasswords(selectedFolder);
     const found = folderItems.find(p => p.id === id);
     if (found) {
@@ -1129,22 +1129,22 @@ function renderAll() {
   renderFolders();
   renderPasswordsList();
   
-  // Full-width logic for special views (Hack Shield, Recently Deleted, and Card Form)
+  // Full-width logic for special views (Info Center, Recently Deleted, and Card Form)
   const appList = document.querySelector('.app-list');
   const appDetail = document.querySelector('.app-detail');
   const listTopBar = document.getElementById('listTopBar');
   const detailTopBar = document.getElementById('detailTopBar');
   const detailPane = document.getElementById('detailPane');
   
-  // Apply full-width layout for Hack Shield, Recently Deleted, and adding cards
-  const isFullWidth = selectedFolder === "hackshield" || 
+  // Apply full-width layout for Info Center, Recently Deleted, and adding cards
+  const isFullWidth = selectedFolder === "infocenter" || 
                      selectedFolder === "deleted" || 
                      (addEditMode === "addCard" || (addEditMode === "edit" && findPasswordById(selectedPasswordId)?.isCard));
   
   if (isFullWidth) {
     // Hide list and show detail pane in full width
     appList.style.display = "none";
-    appDetail.classList.add('hackshield-full');
+    appDetail.classList.add('infocenter-full');
     
     // Hide top bars
     if (listTopBar) listTopBar.style.display = "none";
@@ -1178,7 +1178,7 @@ function renderAll() {
   } else {
     // Reset everything for normal views
     appList.style.display = "";
-    appDetail.classList.remove('hackshield-full');
+    appDetail.classList.remove('infocenter-full');
     
     if (listTopBar) listTopBar.style.display = "";
     if (detailTopBar) detailTopBar.style.display = "";
@@ -1249,10 +1249,10 @@ document.getElementById('addFolderBtn').onclick = () => {
 // Update the addPasswordBtn event handler
 document.getElementById('addPasswordBtn').onclick = () => {
   if (selectedFolder === "cards") {
-    // Use hackshield-like layout for cards
+    // Use infocenter-like layout for cards
     addEditMode = "addCard";
     
-    // Apply full-width layout like Hack Shield
+    // Apply full-width layout like Info Center
     const appList = document.querySelector('.app-list');
     const appDetail = document.querySelector('.app-detail');
     const listTopBar = document.getElementById('listTopBar');
@@ -1260,7 +1260,7 @@ document.getElementById('addPasswordBtn').onclick = () => {
     
     // Hide list and show detail pane in full width
     appList.style.display = "none";
-    appDetail.classList.add('hackshield-full');
+    appDetail.classList.add('infocenter-full');
     
     // Hide top bars
     if (listTopBar) listTopBar.style.display = "none";
@@ -2071,7 +2071,7 @@ function setupExpiryDateValidation() {
   });
 }
 
-function renderHackShield(pane) {
+function renderInfoCenter(pane) {
   // Gather only passwords from "All Items"
   let allPwds = getPasswords("all");
   
@@ -2299,9 +2299,9 @@ function renderHackShield(pane) {
   }
 
   pane.innerHTML = `
-    <div class="hackshield-container mx-auto" style="max-width:900px;">
+    <div class="infocenter-container mx-auto" style="max-width:900px;">
       <div class="mb-5">
-        <h4 class="mb-3"><i class="bi bi-graph-up-arrow me-2"></i> Hack Shield</h4>
+        <h4 class="mb-3"><i class="bi bi-graph-up-arrow me-2"></i> Info Center</h4>
         <div class="mb-2 fw-medium">Overall Password Strength</div>
         <div style="border-radius:8px;overflow:hidden;border:1px solid var(--border-color);">${bar}</div>
         <div class="mt-3">
@@ -2313,19 +2313,19 @@ function renderHackShield(pane) {
       <div class="row g-4">
         <div class="col-12 col-md-3">
           <div class="card p-4 text-center">
-            <div class="fs-1 fw-bold mb-2 text-danger">${weak}</div>
+            <div class="fs-1 fw-bold mb-2">${weak}</div>
             <div class="text-secondary">Weak Passwords</div>
           </div>
         </div>
         <div class="col-12 col-md-3">
           <div class="card p-4 text-center">
-            <div class="fs-1 fw-bold mb-2 text-info">${reused}</div>
+            <div class="fs-1 fw-bold mb-2">${reused}</div>
             <div class="text-secondary">Reused Passwords</div>
           </div>
         </div>
         <div class="col-12 col-md-3">
           <div class="card p-4 text-center">
-            <div class="fs-1 fw-bold mb-2 text-warning">${expiringCards.length}</div>
+            <div class="fs-1 fw-bold mb-2">${expiringCards.length}</div>
             <div class="text-secondary">Expiring Cards</div>
           </div>
         </div>
@@ -2370,9 +2370,9 @@ function selectPassword(passwordId, folderId) {
 function renderDeletedItems(pane) {
   const deletedItems = getDeletedPasswords();
   
-  // Using the same container style as Hack Shield
+  // Using the same container style as Info Center
   pane.innerHTML = `
-    <div class="hackshield-container mx-auto" style="max-width:900px;">
+    <div class="infocenter-container mx-auto" style="max-width:900px;">
       <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
           <h4 class="mb-1"><i class="bi bi-trash me-2"></i> Recently Deleted</h4>
@@ -2402,7 +2402,7 @@ function renderDeletedItems(pane) {
     return;
   }
   
-  // Create cards with the same style as Hack Shield cards
+  // Create cards with the same style as Info Center cards
   deletedItems.forEach(item => {
     const deleteDate = new Date(item.deleteDate);
     const formattedDate = deleteDate.toLocaleDateString();
@@ -2506,7 +2506,7 @@ function renderDeletedItems(pane) {
     container.appendChild(card);
   });
   
-  // Add info footer like in Hack Shield
+  // Add info footer like in Info Center
   const footer = document.createElement('div');
   footer.className = 'mt-4 small text-secondary';
   footer.innerHTML = `<i class="bi bi-info-circle"></i> Deleted items are stored locally and will be permanently removed after 30 days.`;
@@ -2558,7 +2558,7 @@ function getTimeAgo(timestamp) {
 
 // Also update the renderCardForm function with the improved card design
 // Update the renderCardForm function to fix cardholder name and expiry date display
-// Update the renderCardForm function to use a Hack Shield-like layout
+// Update the renderCardForm function to use a Info Center-like layout
 function renderCardForm(editId) {
   const pane = document.getElementById('detailPane');
   let editing = !!editId;
@@ -2584,9 +2584,9 @@ function renderCardForm(editId) {
   const isDarkColor = isColorDark(cardColor);
   const textColor = isDarkColor ? '#ffffff' : '#000000';
   
-  // Create a Hack Shield-like layout
+  // Create a Info Center-like layout
   pane.innerHTML = `
-    <div class="hackshield-container mx-auto" style="max-width:900px;">
+    <div class="infocenter-container mx-auto" style="max-width:900px;">
       <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
           <h4 class="mb-1"><i class="bi bi-credit-card-fill me-2"></i> ${editing ? 'Edit' : 'New'} Payment Card</h4>

@@ -409,7 +409,7 @@ html, body, #app {
   flex-direction: column;
 }
 
-.app-detail.hackshield-full {
+.app-detail.infocenter-full {
   flex-basis: 0;
   flex-grow: 1;
   max-width: 100%;
@@ -511,20 +511,20 @@ html, body, #app {
   color: white;
 }
 
-/* Hack Shield dashboard */
-.hackshield-container {
+/* Info Center dashboard */
+.infocenter-container {
   margin-top: 30px;
   margin-bottom: 30px;
   padding: 0 15px;
 }
 
-.hackshield-container h4 {
+.infocenter-container h4 {
   font-weight: 600;
   margin-bottom: 1.5rem;
   color: var(--text-primary);
 }
 
-.hackshield-container .card {
+.infocenter-container .card {
   background: var(--bg-card);
   border: none;
   border-radius: 12px;
@@ -532,29 +532,29 @@ html, body, #app {
   transition: all 0.2s ease;
 }
 
-.hackshield-container .card:hover {
+.infocenter-container .card:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-lg);
 }
 
-.hackshield-container .card .fs-2 {
+.infocenter-container .card .fs-2 {
   font-weight: 700;
   color: var(--accent-primary);
 }
 
-/* Hack Shield password lists */
-.hackshield-container .password-item {
+/* Info Center password lists */
+.infocenter-container .password-item {
   transition: background-color 0.2s ease;
   border-radius: 6px;
   padding: 8px;
   margin: 2px 0;
 }
 
-.hackshield-container .password-item:hover {
+.infocenter-container .password-item:hover {
   background-color: var(--hover-bg);
 }
 
-.hackshield-container .password-item:last-child {
+.infocenter-container .password-item:last-child {
   border-bottom: none !important;
 }
 
