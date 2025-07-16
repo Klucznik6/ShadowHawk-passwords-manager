@@ -149,7 +149,13 @@ function saveFolders(folders) {
 }
 // Update the getPasswords function to filter cards from "all" view
 function getPasswords(folderId, searchTerm="") {
-  if (!CURRENT_USER) return [];
+  if (!CURRENT_USER) {
+    console.log("getPasswords: No current user");
+    return [];
+  }
+  
+  console.log(`getPasswords: user=${CURRENT_USER}, folder=${folderId}, search="${searchTerm}"`);
+  
   let folders = getFolders();
   let allFolders = folders.filter(f => !f.system || f.id === "favorites" || f.id === "all").map(f => f.id);
   let out = [];
@@ -158,11 +164,13 @@ function getPasswords(folderId, searchTerm="") {
     // Include all regular folders
     for (const f of folders.filter(f=>!f.system)) {
       let items = JSON.parse(localStorage.getItem(getPasswordsKey(CURRENT_USER, f.id)) || "[]");
+      console.log(`getPasswords: folder ${f.id} has ${items.length} items`);
       out.push(...items.map(it => ({...it, folderId: f.id})));
     }
     
     // Also include unassigned items
     let unassignedItems = JSON.parse(localStorage.getItem(getPasswordsKey(CURRENT_USER, "unassigned")) || "[]");
+    console.log(`getPasswords: unassigned has ${unassignedItems.length} items`);
     out.push(...unassignedItems.map(it => ({...it, folderId: "unassigned"})));
     
     // Filter out any cards - cards should only be in the cards section
@@ -305,6 +313,7 @@ function renderPasswordsList() {
   const list = document.getElementById('passwordsList');
   let searchTerm = document.getElementById('searchInput')?.value || "";
   const passwords = getPasswords(selectedFolder, searchTerm);
+  
   list.innerHTML = "";
   
   if (passwords.length === 0) {
@@ -1106,6 +1115,10 @@ function cleanupOldDeletedItems() {
 
 // Update the renderAll function to handle the card form layout
 function renderAll() {
+  console.log("renderAll() called for user:", CURRENT_USER);
+  document.getElementById('currentUser').textContent = CURRENT_USER ? `@${CURRENT_USER}` : "";
+  document.getElementById('searchInput').value = "";
+  
   cleanupOldDeletedItems();
   renderFolders();
   renderPasswordsList();
@@ -1190,8 +1203,6 @@ function renderAll() {
   // Always update folder name and user info
   document.getElementById('currentFolderName').textContent =
     getFolders().find(f => f.id === selectedFolder)?.name || "All Items";
-  document.getElementById('currentUser').textContent = CURRENT_USER ? `@${CURRENT_USER}` : "";
-  document.getElementById('searchInput').value = "";
 }
 
 // --- Event handlers ---
@@ -1278,7 +1289,7 @@ document.getElementById('searchInput').oninput = function() {
 };
 
 document.getElementById('exportPwdsBtn').onclick = () => {
-  exportPasswords();
+  exportPasswordsWithCode();
 };
 
 document.getElementById('importPwdsBtn').onclick = () => {
@@ -1295,6 +1306,88 @@ document.getElementById('importFileInput').onchange = function(e) {
   reader.readAsText(file);
   // Reset input so user can import the same file again if needed
   e.target.value = "";
+};
+
+// Export/Import code functionality
+let pendingImportData = null;
+let pendingExportData = null;
+
+function showExportCodeModal(exportCode, encryptedData) {
+  pendingExportData = encryptedData;
+  const modal = document.getElementById('exportCodeModal');
+  const codeDisplay = document.getElementById('exportCodeDisplay');
+  
+  codeDisplay.textContent = exportCode;
+  modal.classList.remove('d-none');
+}
+
+function showImportCodePrompt() {
+  const modal = document.getElementById('importCodeModal');
+  const input = document.getElementById('importCodeInput');
+  const error = document.getElementById('importCodeError');
+  
+  input.value = '';
+  error.classList.add('d-none');
+  modal.classList.remove('d-none');
+  input.focus();
+}
+
+function hideExportCodeModal() {
+  document.getElementById('exportCodeModal').classList.add('d-none');
+  pendingExportData = null;
+}
+
+function hideImportCodeModal() {
+  document.getElementById('importCodeModal').classList.add('d-none');
+  document.getElementById('importCodeInput').value = '';
+  document.getElementById('importCodeError').classList.add('d-none');
+  pendingImportData = null;
+}
+
+// Export code modal handlers
+document.getElementById('exportCodeCopy').onclick = () => {
+  const codeText = document.getElementById('exportCodeDisplay').textContent;
+  navigator.clipboard.writeText(codeText).then(() => {
+    showInfoModal('Export code copied to clipboard!');
+  });
+};
+
+document.getElementById('exportCodeDownload').onclick = () => {
+  if (pendingExportData) {
+    downloadEncryptedFile(pendingExportData);
+    hideExportCodeModal();
+    showInfoModal('Passwords exported successfully with encryption!');
+  }
+};
+
+document.getElementById('exportCodeCancel').onclick = () => {
+  hideExportCodeModal();
+};
+
+// Import code modal handlers
+document.getElementById('importCodeCancel').onclick = () => {
+  hideImportCodeModal();
+};
+
+document.getElementById('importCodeConfirm').onclick = () => {
+  const code = document.getElementById('importCodeInput').value.trim();
+  const error = document.getElementById('importCodeError');
+  
+  if (!code) {
+    error.textContent = 'Please enter the export code.';
+    error.classList.remove('d-none');
+    return;
+  }
+  
+  // Try to import with the provided code
+  importPasswordsWithCode(pendingImportData, code);
+  hideImportCodeModal();
+};
+
+document.getElementById('importCodeInput').onkeypress = function(e) {
+  if (e.key === 'Enter') {
+    document.getElementById('importCodeConfirm').click();
+  }
 };
 
 // --- Authentication overlay logic ---
@@ -1473,32 +1566,101 @@ window.onbeforeunload = function() {
   CURRENT_USER = null;
   localStorage.removeItem(LOGGED_IN_KEY);
 };
-function exportPasswords() {
+function generateExportCode() {
+  // Generate a random 6-segment code similar to recovery code but different format
+  const segments = [];
+  for (let i = 0; i < 6; i++) {
+    segments.push(Math.random().toString(36).slice(2, 5).toUpperCase());
+  }
+  return segments.join('-');
+}
+
+function exportPasswordsWithCode() {
   if (!CURRENT_USER) return;
+  
+  // Generate random export code
+  const exportCode = generateExportCode();
+  
   const folders = getFolders();
   const exportData = {
     folders,
     passwords: {},
-    cards: [] // New array to store payment cards
+    cards: [],
+    exportUser: CURRENT_USER, // Keep for reference but don't use in import
+    exportTimestamp: new Date().toISOString()
   };
   
-  // Export passwords from all real folders
+  // Export passwords from all real folders - get RAW data, not user-specific
   folders.filter(f => !f.system).forEach(f => {
-    exportData.passwords[f.id] = getPasswords(f.id);
+    const rawPasswords = JSON.parse(localStorage.getItem(getPasswordsKey(CURRENT_USER, f.id)) || "[]");
+    // Decrypt all data for export so it's user-independent
+    const decryptedPasswords = rawPasswords.map(pw => ({
+      ...pw,
+      title: pw.title ? decrypt(pw.title) : "",
+      username: pw.username ? decrypt(pw.username) : "",
+      password: pw.password ? decrypt(pw.password) : "",
+      site: pw.site ? decrypt(pw.site) : "",
+      notes: pw.notes ? decrypt(pw.notes) : "",
+      // For cards, also decrypt card data
+      cardholderName: pw.cardholderName ? decrypt(pw.cardholderName) : "",
+      cardNumber: pw.cardNumber ? decrypt(pw.cardNumber) : "",
+      expiryDate: pw.expiryDate ? decrypt(pw.expiryDate) : "",
+      cvv: pw.cvv ? decrypt(pw.cvv) : ""
+    }));
+    exportData.passwords[f.id] = decryptedPasswords;
   });
   
-  // Export unassigned passwords as well
-  exportData.passwords["unassigned"] = getPasswords("unassigned");
+  // Export unassigned passwords as well - RAW data
+  const rawUnassigned = JSON.parse(localStorage.getItem(getPasswordsKey(CURRENT_USER, "unassigned")) || "[]");
+  const decryptedUnassigned = rawUnassigned.map(pw => ({
+    ...pw,
+    title: pw.title ? decrypt(pw.title) : "",
+    username: pw.username ? decrypt(pw.username) : "",
+    password: pw.password ? decrypt(pw.password) : "",
+    site: pw.site ? decrypt(pw.site) : "",
+    notes: pw.notes ? decrypt(pw.notes) : "",
+    // For cards, also decrypt card data
+    cardholderName: pw.cardholderName ? decrypt(pw.cardholderName) : "",
+    cardNumber: pw.cardNumber ? decrypt(pw.cardNumber) : "",
+    expiryDate: pw.expiryDate ? decrypt(pw.expiryDate) : "",
+    cvv: pw.cvv ? decrypt(pw.cvv) : ""
+  }));
+  exportData.passwords["unassigned"] = decryptedUnassigned;
   
-  // Export cards from the cards system folder
-  const cardItems = getPasswords("cards");
-  exportData.cards = cardItems; // Add cards to export data
+  // Export cards from the cards system folder - RAW data
+  const rawCards = JSON.parse(localStorage.getItem(getPasswordsKey(CURRENT_USER, "cards")) || "[]");
+  const decryptedCards = rawCards.map(card => ({
+    ...card,
+    cardholderName: card.cardholderName ? decrypt(card.cardholderName) : "",
+    cardNumber: card.cardNumber ? decrypt(card.cardNumber) : "",
+    expiryDate: card.expiryDate ? decrypt(card.expiryDate) : "",
+    cvv: card.cvv ? decrypt(card.cvv) : "",
+    notes: card.notes ? decrypt(card.notes) : ""
+  }));
+  exportData.cards = decryptedCards;
   
-  const blob = new Blob([JSON.stringify(exportData, null, 2)], {type: "application/json"});
+  // Encrypt the export data using the generated code
+  const dataString = JSON.stringify(exportData);
+  const encrypted = CryptoJS.AES.encrypt(dataString, exportCode).toString();
+  
+  // Create the final encrypted export
+  const encryptedExport = {
+    encrypted: true,
+    data: encrypted,
+    timestamp: new Date().toISOString(),
+    user: CURRENT_USER
+  };
+  
+  // Show the export code to user before downloading
+  showExportCodeModal(exportCode, encryptedExport);
+}
+
+function downloadEncryptedFile(encryptedData) {
+  const blob = new Blob([JSON.stringify(encryptedData, null, 2)], {type: "application/json"});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `passwords-export-${CURRENT_USER}.json`;
+  a.download = `passwords-export-encrypted-${CURRENT_USER}.json`;
   document.body.appendChild(a);
   a.click();
   setTimeout(() => {
@@ -1510,48 +1672,211 @@ function exportPasswords() {
 function importPasswords(json) {
   if (!CURRENT_USER) return;
   try {
-    const data = typeof json === "string" ? JSON.parse(json) : json;
-    if (!data.folders || !data.passwords) throw new Error("Invalid file");
+    const rawData = typeof json === "string" ? JSON.parse(json) : json;
     
-    // Merge folders (skip system folders)
-    let folders = getFolders().filter(f => f.system);
-    let customFolders = data.folders.filter(f => !f.system);
-    folders = folders.concat(customFolders);
-    saveFolders(folders);
-    
-    // Import passwords for each folder
-    for (const [folderId, pwds] of Object.entries(data.passwords)) {
-      // Add folderId to each item for proper tracking
-      const updatedPwds = pwds.map(pw => ({...pw, folderId}));
-      
-      // Skip system folders except "unassigned"
-      if (folderId !== "unassigned" && folders.some(f => f.id === folderId && f.system)) {
-        continue;
-      }
-      
-      savePasswords(folderId, updatedPwds);
+    // Check if this is an encrypted export
+    if (rawData.encrypted && rawData.data) {
+      // This is an encrypted file, prompt for export code
+      pendingImportData = json;
+      showImportCodePrompt();
+      return;
     }
     
-    // Import cards if present in the export data
-    if (data.cards && Array.isArray(data.cards)) {
-      // Get existing cards
-      const existingCards = getPasswords("cards");
-      
-      // Add the imported cards, ensuring they have the isCard flag
-      const importedCards = data.cards.map(card => ({...card, isCard: true, folderId: "cards"}));
-      
-      // Merge with existing cards
-      const mergedCards = [...existingCards, ...importedCards];
-      
-      // Save to cards folder
-      savePasswords("cards", mergedCards);
-    }
-    
-    renderAll();
-    showInfoModal("Passwords and cards imported successfully!");
+    // Handle unencrypted import (legacy support)
+    importPasswordsData(rawData);
   } catch (e) {
     showInfoModal("Import failed: " + (e.message || e));
   }
+}
+
+function importPasswordsWithCode(json, exportCode) {
+  if (!CURRENT_USER) return;
+  try {
+    const rawData = typeof json === "string" ? JSON.parse(json) : json;
+    
+    if (!rawData.encrypted || !rawData.data) {
+      // Not an encrypted file, try regular import
+      importPasswordsData(rawData);
+      return;
+    }
+    
+    // Decrypt the data
+    const decryptedBytes = CryptoJS.AES.decrypt(rawData.data, exportCode);
+    const decryptedString = decryptedBytes.toString(CryptoJS.enc.Utf8);
+    
+    if (!decryptedString) {
+      throw new Error("Invalid export code or corrupted file");
+    }
+    
+    const data = JSON.parse(decryptedString);
+    importPasswordsData(data);
+  } catch (e) {
+    if (e.message.includes("Invalid export code")) {
+      showInfoModal("Import failed: Invalid export code or corrupted file.");
+    } else {
+      showInfoModal("Import failed: " + (e.message || e));
+    }
+  }
+}
+
+function importPasswordsData(data) {
+  if (!data.folders || !data.passwords) throw new Error("Invalid file format");
+  
+  // Get current user's existing folders
+  let existingFolders = getFolders().filter(f => f.system);
+  let customFolders = data.folders.filter(f => !f.system);
+  
+  // Create a mapping for folder ID changes (in case of conflicts)
+  const folderIdMapping = {};
+  
+  // Add imported custom folders, handling potential ID conflicts
+  customFolders.forEach(importedFolder => {
+    const existingFolder = existingFolders.find(f => f.name === importedFolder.name && !f.system);
+    if (existingFolder) {
+      // Folder with same name exists, use existing ID
+      folderIdMapping[importedFolder.id] = existingFolder.id;
+    } else {
+      // Create new folder, potentially with new ID if conflict exists
+      let newId = importedFolder.id;
+      while (existingFolders.some(f => f.id === newId)) {
+        newId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
+      }
+      folderIdMapping[importedFolder.id] = newId;
+      
+      // Add folder with new ID
+      existingFolders.push({
+        ...importedFolder,
+        id: newId
+      });
+    }
+  });
+  
+  // Save updated folders
+  saveFolders(existingFolders);
+  
+  // Import passwords for each folder with proper ID mapping
+  let totalImportedPasswords = 0;
+  for (const [originalFolderId, pwds] of Object.entries(data.passwords)) {
+    let targetFolderId = originalFolderId;
+    
+    // Map folder ID if necessary
+    if (folderIdMapping[originalFolderId]) {
+      targetFolderId = folderIdMapping[originalFolderId];
+    }
+    
+    // Skip system folders except "unassigned"
+    if (originalFolderId !== "unassigned" && data.folders.some(f => f.id === originalFolderId && f.system)) {
+      continue;
+    }
+    
+    // Get existing passwords in target folder
+    const existingPasswords = getPasswords(targetFolderId);
+    
+    // Add imported passwords with correct folder ID and RE-ENCRYPT for current user
+    const importedPasswords = pwds.map(pw => ({
+      ...pw,
+      folderId: targetFolderId,
+      id: pw.id || Date.now().toString() + Math.random().toString(36).substr(2, 5),
+      // Re-encrypt all fields for the current user
+      title: pw.title ? encrypt(pw.title) : "",
+      username: pw.username ? encrypt(pw.username) : "",
+      password: pw.password ? encrypt(pw.password) : "",
+      site: pw.site ? encrypt(pw.site) : "",
+      notes: pw.notes ? encrypt(pw.notes) : "",
+      // For cards, also re-encrypt card data
+      cardholderName: pw.cardholderName ? encrypt(pw.cardholderName) : "",
+      cardNumber: pw.cardNumber ? encrypt(pw.cardNumber) : "",
+      expiryDate: pw.expiryDate ? encrypt(pw.expiryDate) : "",
+      cvv: pw.cvv ? encrypt(pw.cvv) : ""
+    }));
+    
+    // Filter out duplicates based on site and username (compare decrypted values)
+    const uniquePasswords = [];
+    importedPasswords.forEach(importedPw => {
+      const importedSite = importedPw.site ? decrypt(importedPw.site) : "";
+      const importedUsername = importedPw.username ? decrypt(importedPw.username) : "";
+      
+      const isDuplicate = existingPasswords.some(existingPw => {
+        const existingSite = existingPw.site ? decrypt(existingPw.site) : "";
+        const existingUsername = existingPw.username ? decrypt(existingPw.username) : "";
+        return existingSite === importedSite && existingUsername === importedUsername;
+      });
+      
+      if (!isDuplicate) {
+        uniquePasswords.push(importedPw);
+        totalImportedPasswords++;
+      }
+    });
+    
+    // Merge and save
+    const mergedPasswords = [...existingPasswords, ...uniquePasswords];
+    savePasswords(targetFolderId, mergedPasswords);
+  }
+  
+  // Import cards if present in the export data
+  let totalImportedCards = 0;
+  if (data.cards && Array.isArray(data.cards)) {
+    // Get existing cards
+    const existingCards = getPasswords("cards");
+    
+    // Add the imported cards, ensuring they have the isCard flag and RE-ENCRYPT for current user
+    const importedCards = data.cards.map(card => ({
+      ...card, 
+      isCard: true, 
+      folderId: "cards",
+      id: card.id || Date.now().toString() + Math.random().toString(36).substr(2, 5),
+      // Re-encrypt all card fields for the current user
+      cardholderName: card.cardholderName ? encrypt(card.cardholderName) : "",
+      cardNumber: card.cardNumber ? encrypt(card.cardNumber) : "",
+      expiryDate: card.expiryDate ? encrypt(card.expiryDate) : "",
+      cvv: card.cvv ? encrypt(card.cvv) : "",
+      notes: card.notes ? encrypt(card.notes) : ""
+    }));
+    
+    // Filter out duplicate cards based on cardNumber (last 4 digits) and cardholderName (compare decrypted values)
+    const uniqueCards = [];
+    importedCards.forEach(importedCard => {
+      const importedCardNumber = importedCard.cardNumber ? decrypt(importedCard.cardNumber) : "";
+      const importedCardholderName = importedCard.cardholderName ? decrypt(importedCard.cardholderName) : "";
+      
+      const isDuplicate = existingCards.some(existingCard => {
+        const existingCardNumber = existingCard.cardNumber ? decrypt(existingCard.cardNumber) : "";
+        const existingCardholderName = existingCard.cardholderName ? decrypt(existingCard.cardholderName) : "";
+        
+        return existingCardNumber && importedCardNumber &&
+               existingCardNumber.slice(-4) === importedCardNumber.slice(-4) &&
+               existingCardholderName === importedCardholderName;
+      });
+      
+      if (!isDuplicate) {
+        uniqueCards.push(importedCard);
+        totalImportedCards++;
+      }
+    });
+    
+    // Merge with existing cards
+    const mergedCards = [...existingCards, ...uniqueCards];
+    
+    // Save to cards folder
+    savePasswords("cards", mergedCards);
+  }
+  
+  console.log("Import completed successfully!");
+  console.log(`Total imported: ${totalImportedPasswords} passwords, ${totalImportedCards} cards`);
+  
+  // Clear any current selection to ensure fresh state
+  selectedPasswordId = null;
+  addEditMode = null;
+  
+  // Set to "all" to show all imported items
+  selectedFolder = "all";
+  
+  // Full UI refresh
+  renderAll();
+  
+  // Show success message
+  const totalItems = totalImportedPasswords + totalImportedCards;
+  showInfoModal(`Import successful! Imported ${totalItems} items.`);
 }
 
 // Show recovery overlay

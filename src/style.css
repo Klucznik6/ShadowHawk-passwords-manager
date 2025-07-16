@@ -556,8 +556,30 @@ html, body, #app {
 }
 
 /* Modals */
-#confirmModal, #infoModal, #settingsModal {
+#confirmModal, #infoModal, #settingsModal, #exportCodeModal, #importCodeModal {
   backdrop-filter: blur(8px);
+}
+
+/* Export Code Modal Styles */
+#exportCodeDisplay {
+  font-family: 'Courier New', monospace;
+  letter-spacing: 2px;
+  word-break: break-all;
+}
+
+[data-bs-theme="dark"] #exportCodeModal .bg-light {
+  background-color: var(--bg-card) !important;
+  border-color: var(--border-color) !important;
+}
+
+[data-bs-theme="dark"] #exportCodeDisplay {
+  color: var(--accent-primary) !important;
+}
+
+/* Import Code Input */
+#importCodeInput {
+  font-family: 'Courier New', monospace;
+  letter-spacing: 1px;
 }
 
 /* Responsive adjustments */

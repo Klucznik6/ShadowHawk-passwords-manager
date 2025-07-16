@@ -143,6 +143,54 @@
         </div>
       </div>
     </div>
+    <!-- Export Code Modal -->
+    <div id="exportCodeModal" class="d-none position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark bg-opacity-50" style="z-index:30020;">
+      <div class="card shadow-lg" style="min-width:400px;max-width:95vw;">
+        <div class="card-body">
+          <h5 class="mb-4 text-center text-success">
+            <i class="bi bi-shield-check me-2"></i>Export Code Generated
+          </h5>
+          <div class="alert alert-warning" role="alert">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            <strong>Important:</strong> Save this code! You'll need it to import your passwords.
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold">Your Export Code:</label>
+            <div class="p-3 bg-light border rounded text-center">
+              <code id="exportCodeDisplay" class="fs-4 fw-bold text-primary"></code>
+            </div>
+          </div>
+          <div class="d-flex gap-2 justify-content-end">
+            <button class="btn btn-outline-secondary" id="exportCodeCancel">Cancel</button>
+            <button class="btn btn-outline-primary" id="exportCodeCopy">
+              <i class="bi bi-clipboard me-1"></i>Copy Code
+            </button>
+            <button class="btn btn-success" id="exportCodeDownload">
+              <i class="bi bi-download me-1"></i>Download File
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Import Code Modal -->
+    <div id="importCodeModal" class="d-none position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark bg-opacity-50" style="z-index:30021;">
+      <div class="card shadow-lg" style="min-width:350px;max-width:95vw;">
+        <div class="card-body">
+          <h5 class="mb-4 text-center">Enter Export Code</h5>
+          <div class="mb-3">
+            <label for="importCodeInput" class="form-label">Export Code</label>
+            <input type="text" class="form-control text-uppercase" id="importCodeInput" placeholder="XXX-XXX-XXX-XXX-XXX-XXX" required>
+            <div class="form-text">Enter the code that was provided when the file was exported.</div>
+          </div>
+          <div id="importCodeError" class="alert alert-danger d-none" role="alert"></div>
+          <div class="d-flex gap-2 justify-content-end">
+            <button class="btn btn-secondary" id="importCodeCancel">Cancel</button>
+            <button class="btn btn-primary" id="importCodeConfirm">Import</button>
+          </div>
+        </div>
+      </div>
+    </div>
     <!-- Settings Modal -->
     <div id="settingsModal" class="d-none position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark bg-opacity-50" style="z-index:30010;">
       <div class="card shadow-lg" style="min-width:320px;max-width:95vw;">
