@@ -342,13 +342,19 @@ function renderPasswordsList() {
       const lastFour = cardNum.replace(/\s/g, '').slice(-4);
       subtitle = `${pw.cardType === 'credit' ? 'Credit' : 'Debit'} •••• ${lastFour}`;
       
+      // Check if card is expiring soon
+      const isExpiring = isCardExpiringSoon(pw);
+      const expiringClass = isExpiring ? 'card-expiring-soon' : '';
+      const expiringIcon = isExpiring ? '<i class="bi bi-exclamation-triangle-fill text-danger ms-2" title="Expires within 1 month"></i>' : '';
+      
       // For cards, use regular icon rendering
       let fav = pw.favorite ? "" : "inactive";
       iconElement = `<i class="pw-icon bi ${iconClass}"></i>`;
       
+      li.className += ` ${expiringClass}`;
       li.innerHTML = `${iconElement}
         <div class="flex-grow-1">
-          <div class="item-title">${title}</div>
+          <div class="item-title">${title}${expiringIcon}</div>
           <div class="item-sub">${subtitle}</div>
         </div>
         <i class="pw-fav bi bi-star-fill ${fav}" title="Favorite"></i>`;
@@ -1933,23 +1939,211 @@ function getPasswordStrength(pw) {
   return score; // 0-5
 }
 
+// Check if a credit card is expiring within one month
+function isCardExpiringSoon(card) {
+  if (!card.isCard || !card.expiryDate) return false;
+  
+  const expiryDateStr = decrypt(card.expiryDate);
+  if (!expiryDateStr) return false;
+  
+  // Parse expiry date (MM/YY format)
+  const [month, year] = expiryDateStr.split('/');
+  if (!month || !year) return false;
+  
+  // Create expiry date (last day of the expiry month)
+  const expiryDate = new Date(2000 + parseInt(year), parseInt(month) - 1 + 1, 0); // Last day of expiry month
+  
+  // Get current date and one month from now
+  const now = new Date();
+  const oneMonthFromNow = new Date();
+  oneMonthFromNow.setMonth(now.getMonth() + 1);
+  
+  // Check if card expires within one month
+  return expiryDate <= oneMonthFromNow && expiryDate >= now;
+}
+
+// Validate and format expiry date input (MM/YY)
+function validateExpiryDate(input) {
+  // Remove all non-digits first
+  let value = input.replace(/\D/g, '');
+  
+  // Limit to 4 digits max (MMYY)
+  if (value.length > 4) {
+    value = value.substring(0, 4);
+  }
+  
+  // Format with slash
+  if (value.length >= 2) {
+    let month = value.substring(0, 2);
+    const year = value.substring(2);
+    
+    // Validate and correct month (01-12)
+    const monthNum = parseInt(month, 10);
+    if (month.length === 2) {
+      if (monthNum < 1) {
+        month = '01';
+      } else if (monthNum > 12) {
+        month = '12';
+      } else if (monthNum < 10 && month.charAt(0) !== '0') {
+        month = '0' + monthNum; // Ensure leading zero
+      }
+    }
+    
+    value = month + year;
+    
+    // Add slash between month and year
+    if (value.length > 2) {
+      value = value.substring(0, 2) + '/' + value.substring(2);
+    }
+  }
+  
+  return value;
+}
+
+// Set up expiry date input validation
+function setupExpiryDateValidation() {
+  const expiryInput = document.getElementById('expiryDateInput');
+  if (!expiryInput) return;
+  
+  // Format input on keyup
+  expiryInput.addEventListener('input', function(e) {
+    const cursorPosition = e.target.selectionStart;
+    const oldValue = e.target.value;
+    const newValue = validateExpiryDate(e.target.value);
+    
+    if (oldValue !== newValue) {
+      e.target.value = newValue;
+      
+      // Adjust cursor position if slash was added
+      if (newValue.length > oldValue.length && newValue.charAt(2) === '/') {
+        e.target.setSelectionRange(cursorPosition + 1, cursorPosition + 1);
+      } else {
+        e.target.setSelectionRange(cursorPosition, cursorPosition);
+      }
+    }
+  });
+  
+  // Validate on blur (when user leaves the field)
+  expiryInput.addEventListener('blur', function(e) {
+    const value = e.target.value;
+    const invalidFeedback = e.target.parentNode.querySelector('.invalid-feedback');
+    
+    if (value.length === 5) { // MM/YY format
+      const [month, year] = value.split('/');
+      const monthNum = parseInt(month, 10);
+      const yearNum = parseInt(year, 10);
+      const currentDate = new Date();
+      const currentYear = currentDate.getFullYear() % 100; // Get last 2 digits of current year
+      const currentMonth = currentDate.getMonth() + 1; // getMonth() returns 0-11
+      
+      // Additional validation
+      if (monthNum < 1 || monthNum > 12) {
+        e.target.setCustomValidity('Please enter a valid month (01-12)');
+        e.target.classList.add('is-invalid');
+        if (invalidFeedback) invalidFeedback.textContent = 'Please enter a valid month (01-12)';
+      } else if (yearNum < currentYear || (yearNum === currentYear && monthNum < currentMonth)) {
+        e.target.setCustomValidity('Card expiry date cannot be in the past');
+        e.target.classList.add('is-invalid');
+        if (invalidFeedback) invalidFeedback.textContent = 'Card expiry date cannot be in the past';
+      } else {
+        e.target.setCustomValidity('');
+        e.target.classList.remove('is-invalid');
+        if (invalidFeedback) invalidFeedback.textContent = 'Please enter a valid expiry date in MM/YY format';
+      }
+    } else if (value.length > 0) {
+      e.target.setCustomValidity('Please enter expiry date in MM/YY format');
+      e.target.classList.add('is-invalid');
+      if (invalidFeedback) invalidFeedback.textContent = 'Please enter expiry date in MM/YY format';
+    } else {
+      e.target.setCustomValidity('');
+      e.target.classList.remove('is-invalid');
+      if (invalidFeedback) invalidFeedback.textContent = 'Please enter a valid expiry date in MM/YY format';
+    }
+  });
+  
+  // Prevent paste of invalid data
+  expiryInput.addEventListener('paste', function(e) {
+    e.preventDefault();
+    const paste = (e.clipboardData || window.clipboardData).getData('text');
+    const validated = validateExpiryDate(paste);
+    e.target.value = validated;
+    e.target.dispatchEvent(new Event('input'));
+  });
+}
+
 function renderHackShield(pane) {
   // Gather only passwords from "All Items"
   let allPwds = getPasswords("all");
+  
+  // Also gather cards to check for expiring ones
+  let allCards = getPasswords("cards");
 
-  // Analyze
+  // Analyze and categorize passwords
   let stats = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0, 0: 0 };
   let reused = 0;
-  let pwSet = new Set();
+  let pwMap = new Map(); // Track password usage
   let weak = 0;
+  
+  // Arrays to store categorized passwords and cards
+  let weakPasswords = [];
+  let mediumPasswords = [];
+  let reusedPasswords = [];
+  let expiringCards = [];
 
+  // Check for expiring cards
+  allCards.forEach(card => {
+    if (isCardExpiringSoon(card)) {
+      expiringCards.push({
+        ...card,
+        decryptedCardholderName: decrypt(card.cardholderName || ""),
+        decryptedCardNumber: decrypt(card.cardNumber || ""),
+        decryptedExpiryDate: decrypt(card.expiryDate || "")
+      });
+    }
+  });
+
+  // First pass: analyze all passwords and track usage
   allPwds.forEach(pw => {
     let realPw = decrypt(pw.password);
     let strength = getPasswordStrength(realPw);
     stats[strength]++;
-    if (strength <= 2) weak++;
-    if (pwSet.has(realPw)) reused++;
-    pwSet.add(realPw);
+    
+    // Track password usage
+    if (!pwMap.has(realPw)) {
+      pwMap.set(realPw, []);
+    }
+    pwMap.get(realPw).push({
+      ...pw,
+      strength: strength,
+      decryptedTitle: decrypt(pw.title || ""),
+      decryptedUsername: decrypt(pw.username || "")
+    });
+    
+    // Categorize by strength
+    if (strength <= 2) {
+      weak++;
+      weakPasswords.push({
+        ...pw,
+        strength: strength,
+        decryptedTitle: decrypt(pw.title || ""),
+        decryptedUsername: decrypt(pw.username || "")
+      });
+    } else if (strength === 3) {
+      mediumPasswords.push({
+        ...pw,
+        strength: strength,
+        decryptedTitle: decrypt(pw.title || ""),
+        decryptedUsername: decrypt(pw.username || "")
+      });
+    }
+  });
+
+  // Second pass: identify reused passwords
+  pwMap.forEach((passwords, password) => {
+    if (passwords.length > 1) {
+      reused += passwords.length;
+      reusedPasswords.push(...passwords);
+    }
   });
 
   let total = allPwds.length;
@@ -1959,6 +2153,149 @@ function renderHackShield(pane) {
       let color = i >= 4 ? 'bg-success' : i === 3 ? 'bg-warning' : 'bg-danger';
       bar += `<div class="${color}" style="display:inline-block;width:${(stats[i]/(total||1))*100}%;height:22px"></div>`;
     }
+  }
+
+  // Generate weak passwords list HTML
+  let weakPasswordsHTML = '';
+  if (weakPasswords.length > 0) {
+    weakPasswordsHTML = `
+      <div class="mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="mb-0 text-danger"><i class="bi bi-exclamation-triangle me-2"></i>Weak Passwords (${weakPasswords.length})</h5>
+          <button class="btn btn-sm btn-outline-danger" type="button" data-bs-toggle="collapse" data-bs-target="#weakPasswordsList">
+            <i class="bi bi-eye"></i> Show
+          </button>
+        </div>
+        <div class="collapse" id="weakPasswordsList">
+          <div class="card">
+            <div class="card-body p-3">
+              ${weakPasswords.map(pw => `
+                <div class="password-item d-flex justify-content-between align-items-center py-2 border-bottom" style="cursor: pointer;" onclick="selectPassword('${pw.id}', '${pw.folderId}')">
+                  <div>
+                    <div class="fw-medium">${pw.decryptedTitle || 'Untitled'}</div>
+                    <div class="small text-muted">${pw.decryptedUsername || 'No username'}</div>
+                  </div>
+                  <div>
+                    <span class="badge bg-danger">Strength: ${pw.strength}/5</span>
+                  </div>
+                </div>
+              `).join('')}
+              <div class="mt-3 text-center">
+                <small class="text-muted">Click on any password to edit and strengthen it</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // Generate medium passwords list HTML
+  let mediumPasswordsHTML = '';
+  if (mediumPasswords.length > 0) {
+    mediumPasswordsHTML = `
+      <div class="mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="mb-0 text-warning"><i class="bi bi-exclamation-circle me-2"></i>Medium Passwords (${mediumPasswords.length})</h5>
+          <button class="btn btn-sm btn-outline-warning" type="button" data-bs-toggle="collapse" data-bs-target="#mediumPasswordsList">
+            <i class="bi bi-eye"></i> Show
+          </button>
+        </div>
+        <div class="collapse" id="mediumPasswordsList">
+          <div class="card">
+            <div class="card-body p-3">
+              ${mediumPasswords.map(pw => `
+                <div class="password-item d-flex justify-content-between align-items-center py-2 border-bottom" style="cursor: pointer;" onclick="selectPassword('${pw.id}', '${pw.folderId}')">
+                  <div>
+                    <div class="fw-medium">${pw.decryptedTitle || 'Untitled'}</div>
+                    <div class="small text-muted">${pw.decryptedUsername || 'No username'}</div>
+                  </div>
+                  <div>
+                    <span class="badge bg-warning text-dark">Strength: ${pw.strength}/5</span>
+                  </div>
+                </div>
+              `).join('')}
+              <div class="mt-3 text-center">
+                <small class="text-muted">Consider strengthening these passwords for better security</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // Generate reused passwords list HTML
+  let reusedPasswordsHTML = '';
+  if (reusedPasswords.length > 0) {
+    reusedPasswordsHTML = `
+      <div class="mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="mb-0 text-info"><i class="bi bi-files me-2"></i>Reused Passwords (${reusedPasswords.length})</h5>
+          <button class="btn btn-sm btn-outline-info" type="button" data-bs-toggle="collapse" data-bs-target="#reusedPasswordsList">
+            <i class="bi bi-eye"></i> Show
+          </button>
+        </div>
+        <div class="collapse" id="reusedPasswordsList">
+          <div class="card">
+            <div class="card-body p-3">
+              ${reusedPasswords.map(pw => `
+                <div class="password-item d-flex justify-content-between align-items-center py-2 border-bottom" style="cursor: pointer;" onclick="selectPassword('${pw.id}', '${pw.folderId}')">
+                  <div>
+                    <div class="fw-medium">${pw.decryptedTitle || 'Untitled'}</div>
+                    <div class="small text-muted">${pw.decryptedUsername || 'No username'}</div>
+                  </div>
+                  <div>
+                    <span class="badge bg-info">Reused</span>
+                  </div>
+                </div>
+              `).join('')}
+              <div class="mt-3 text-center">
+                <small class="text-muted">Each account should have a unique password</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // Generate expiring cards list HTML
+  let expiringCardsHTML = '';
+  if (expiringCards.length > 0) {
+    expiringCardsHTML = `
+      <div class="mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="mb-0 text-danger"><i class="bi bi-credit-card-fill me-2"></i>Cards Expiring Soon (${expiringCards.length})</h5>
+          <button class="btn btn-sm btn-outline-danger" type="button" data-bs-toggle="collapse" data-bs-target="#expiringCardsList">
+            <i class="bi bi-eye"></i> Show
+          </button>
+        </div>
+        <div class="collapse" id="expiringCardsList">
+          <div class="card">
+            <div class="card-body p-3">
+              ${expiringCards.map(card => {
+                const lastFour = card.decryptedCardNumber.replace(/\s/g, '').slice(-4);
+                return `
+                  <div class="password-item d-flex justify-content-between align-items-center py-2 border-bottom" style="cursor: pointer;" onclick="selectPassword('${card.id}', 'cards')">
+                    <div>
+                      <div class="fw-medium">${card.decryptedCardholderName || 'Unknown Cardholder'}</div>
+                      <div class="small text-muted">${card.cardType === 'credit' ? 'Credit' : 'Debit'} •••• ${lastFour}</div>
+                    </div>
+                    <div>
+                      <span class="badge bg-danger">Expires: ${card.decryptedExpiryDate}</span>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+              <div class="mt-3 text-center">
+                <small class="text-muted">Update these cards before they expire</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
   }
 
   pane.innerHTML = `
@@ -1974,31 +2311,58 @@ function renderHackShield(pane) {
         </div>
       </div>
       <div class="row g-4">
-        <div class="col-12 col-md-4">
+        <div class="col-12 col-md-3">
           <div class="card p-4 text-center">
-            <div class="fs-1 fw-bold mb-2">${weak}</div>
+            <div class="fs-1 fw-bold mb-2 text-danger">${weak}</div>
             <div class="text-secondary">Weak Passwords</div>
           </div>
         </div>
-        <div class="col-12 col-md-4">
+        <div class="col-12 col-md-3">
           <div class="card p-4 text-center">
-            <div class="fs-1 fw-bold mb-2">${reused}</div>
+            <div class="fs-1 fw-bold mb-2 text-info">${reused}</div>
             <div class="text-secondary">Reused Passwords</div>
           </div>
         </div>
-        <div class="col-12 col-md-4">
+        <div class="col-12 col-md-3">
+          <div class="card p-4 text-center">
+            <div class="fs-1 fw-bold mb-2 text-warning">${expiringCards.length}</div>
+            <div class="text-secondary">Expiring Cards</div>
+          </div>
+        </div>
+        <div class="col-12 col-md-3">
           <div class="card p-4 text-center">
             <div class="fs-1 fw-bold mb-2">${total}</div>
             <div class="text-secondary">Total Passwords</div>
           </div>
         </div>
       </div>
+      
+      ${expiringCardsHTML}
+      ${weakPasswordsHTML}
+      ${mediumPasswordsHTML}
+      ${reusedPasswordsHTML}
+      
       <div class="mt-5 text-secondary d-flex align-items-center">
         <i class="bi bi-shield-check me-2"></i> 
         <span>Passwords are analyzed locally and never leave your device.</span>
       </div>
     </div>
   `;
+}
+
+// Function to select and navigate to a specific password for editing
+function selectPassword(passwordId, folderId) {
+  // Set the folder first
+  selectedFolder = folderId;
+  
+  // Set the password selection
+  selectedPasswordId = passwordId;
+  
+  // Switch to edit mode
+  addEditMode = "edit";
+  
+  // Re-render the UI to show the selected folder and password
+  renderAll();
 }
 
 // Fix for rendering deleted cards in the Recently Deleted view
@@ -2409,6 +2773,9 @@ function renderCardForm(editId) {
                   <label class="form-label">Expiry Date</label>
                   <input type="text" class="form-control" name="expiryDate" id="expiryDateInput" 
                         value="${expiryDate}" required placeholder="MM/YY" maxlength="5">
+                  <div class="invalid-feedback">
+                    Please enter a valid expiry date in MM/YY format
+                  </div>
                 </div>
                 <div class="col-md-6 mb-3">
                   <label class="form-label">CVV/CVC</label>
@@ -2466,19 +2833,13 @@ function renderCardForm(editId) {
   });
   
   document.getElementById('expiryDateInput').addEventListener('input', function() {
-    let value = this.value.replace(/\D/g, '');
-    let formattedValue = '';
-    
-    if (value.length > 0) {
-      formattedValue = value.substring(0, 2);
-      if (value.length > 2) {
-        formattedValue += '/' + value.substring(2, 4);
-      }
-    }
-    
-    this.value = formattedValue;
-    document.getElementById('previewExpiryDate').innerText = formattedValue || 'MM/YY';
+    const validatedValue = validateExpiryDate(this.value);
+    this.value = validatedValue;
+    document.getElementById('previewExpiryDate').innerText = validatedValue || 'MM/YY';
   });
+  
+  // Set up complete expiry date validation
+  setupExpiryDateValidation();
   
   document.getElementById('cardTypeInput').addEventListener('change', function() {
     document.getElementById('previewCardType').innerText = 

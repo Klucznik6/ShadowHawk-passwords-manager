@@ -341,6 +341,30 @@ html, body, #app {
   background: rgba(59, 130, 246, 0.08);
 }
 
+/* Credit card expiring soon styles */
+.app-passwords-list li.card-expiring-soon {
+  background: rgba(239, 68, 68, 0.1) !important;
+  border-left: 4px solid #ef4444;
+  animation: pulse-warning 2s infinite;
+}
+
+.app-passwords-list li.card-expiring-soon:hover {
+  background: rgba(239, 68, 68, 0.15) !important;
+}
+
+.app-passwords-list li.card-expiring-soon.selected {
+  background: rgba(239, 68, 68, 0.2) !important;
+}
+
+@keyframes pulse-warning {
+  0%, 100% { 
+    border-left-color: #ef4444; 
+  }
+  50% { 
+    border-left-color: #dc2626; 
+  }
+}
+
 .app-passwords-list li .pw-icon {
   font-size: 1.5em;
   margin-right: 1em;
@@ -516,6 +540,22 @@ html, body, #app {
 .hackshield-container .card .fs-2 {
   font-weight: 700;
   color: var(--accent-primary);
+}
+
+/* Hack Shield password lists */
+.hackshield-container .password-item {
+  transition: background-color 0.2s ease;
+  border-radius: 6px;
+  padding: 8px;
+  margin: 2px 0;
+}
+
+.hackshield-container .password-item:hover {
+  background-color: var(--hover-bg);
+}
+
+.hackshield-container .password-item:last-child {
+  border-bottom: none !important;
 }
 
 .badge {
@@ -784,4 +824,28 @@ html, body, #app {
 [data-bs-theme="dark"] .input-group .btn-outline-secondary:hover {
   background-color: var(--bg-list);
   color: var(--text-primary);
+}
+
+/* Expiry Date Validation Styles */
+.form-control.is-invalid {
+  border-color: #dc3545;
+  box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath d='m5.8 4.6 1.4 1.4M7.2 7.4l-1.4-1.4'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right calc(0.375em + 0.1875rem) center;
+  background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+  padding-right: calc(1.5em + 0.75rem);
+}
+
+.form-control.is-invalid:focus {
+  border-color: #dc3545;
+  box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+.invalid-feedback {
+  display: block;
+  width: 100%;
+  margin-top: 0.25rem;
+  font-size: 0.875em;
+  color: #dc3545;
 }
