@@ -24,7 +24,7 @@ const createWindow = () => {
     minWidth: 1000,
     minHeight: 600,
     show: false, // Don't show until ready to prevent white flash
-    // icon: path.join(__dirname, 'assets/icon.ico'), // Temporarily disabled - icon too large
+    icon: path.join(__dirname, 'assets', process.platform === 'win32' ? 'icon.ico' : process.platform === 'darwin' ? 'icon.icns' : 'icon.png'),
     webPreferences: {
       nodeIntegration: false, // Security best practice
       contextIsolation: true, // Security best practice
