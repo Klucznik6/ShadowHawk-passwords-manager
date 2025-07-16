@@ -274,6 +274,109 @@
         </div>
       </div>
     </div>
+    <!-- Folder Creation Modal -->
+    <div id="folderModal" class="d-none position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark bg-opacity-50" style="z-index:30020;">
+      <div class="card shadow-lg" style="min-width:400px;max-width:95vw;">
+        <div class="card-body">
+          <h5 class="mb-4 text-center">Create New Folder</h5>
+          <form id="folderForm">
+            <div class="mb-3">
+              <label for="folderName" class="form-label">Folder Name</label>
+              <input type="text" class="form-control" id="folderName" placeholder="Enter folder name..." required>
+            </div>
+            
+            <div class="mb-3">
+              <label class="form-label">Folder Color</label>
+              <div class="row g-2 mb-2">
+                <div class="col-3">
+                  <div class="folder-color-option" data-color="#DC8A96" style="background-color: #DC8A96; height: 40px; border-radius: 8px; cursor: pointer; border: 2px solid transparent;" title="Pink"></div>
+                </div>
+                <div class="col-3">
+                  <div class="folder-color-option" data-color="#E53E3E" style="background-color: #E53E3E; height: 40px; border-radius: 8px; cursor: pointer; border: 2px solid transparent;" title="Red"></div>
+                </div>
+                <div class="col-3">
+                  <div class="folder-color-option" data-color="#8EC96C" style="background-color: #8EC96C; height: 40px; border-radius: 8px; cursor: pointer; border: 2px solid transparent;" title="Light Green"></div>
+                </div>
+                <div class="col-3">
+                  <div class="folder-color-option" data-color="#4299E1" style="background-color: #4299E1; height: 40px; border-radius: 8px; cursor: pointer; border: 2px solid transparent;" title="Blue"></div>
+                </div>
+              </div>
+              <div class="row g-2 mb-2">
+                <div class="col-3">
+                  <div class="folder-color-option" data-color="#B794F6" style="background-color: #B794F6; height: 40px; border-radius: 8px; cursor: pointer; border: 2px solid transparent;" title="Purple"></div>
+                </div>
+                <div class="col-3">
+                  <div class="folder-color-option" data-color="#FF6B35" style="background-color: #FF6B35; height: 40px; border-radius: 8px; cursor: pointer; border: 2px solid transparent;" title="Orange"></div>
+                </div>
+                <div class="col-3">
+                  <div class="folder-color-option selected" data-color="#38A169" style="background-color: #38A169; height: 40px; border-radius: 8px; cursor: pointer; border: 2px solid #0066CC;" title="Green"></div>
+                </div>
+                <div class="col-3">
+                  <div class="folder-color-option" data-color="#0987A0" style="background-color: #0987A0; height: 40px; border-radius: 8px; cursor: pointer; border: 2px solid transparent;" title="Teal"></div>
+                </div>
+              </div>
+              <div class="row g-2 mb-2">
+                <div class="col-3">
+                  <div class="folder-color-option" data-color="#805AD5" style="background-color: #805AD5; height: 40px; border-radius: 8px; cursor: pointer; border: 2px solid transparent;" title="Deep Purple"></div>
+                </div>
+                <div class="col-3">
+                  <div class="folder-color-option" data-color="#F6AD55" style="background-color: #F6AD55; height: 40px; border-radius: 8px; cursor: pointer; border: 2px solid transparent;" title="Yellow Orange"></div>
+                </div>
+                <div class="col-3">
+                  <div class="folder-color-option" data-color="#319795" style="background-color: #319795; height: 40px; border-radius: 8px; cursor: pointer; border: 2px solid transparent;" title="Dark Teal"></div>
+                </div>
+                <div class="col-3">
+                  <div class="folder-color-option" data-color="#4A5568" style="background-color: #4A5568; height: 40px; border-radius: 8px; cursor: pointer; border: 2px solid transparent;" title="Gray"></div>
+                </div>
+              </div>
+              <div class="row g-2 mb-2">
+                <div class="col-3">
+                  <div class="folder-color-option" data-color="#C53030" style="background-color: #C53030; height: 40px; border-radius: 8px; cursor: pointer; border: 2px solid transparent;" title="Dark Red"></div>
+                </div>
+                <div class="col-3">
+                  <div class="folder-color-option" data-color="#B7791F" style="background-color: #B7791F; height: 40px; border-radius: 8px; cursor: pointer; border: 2px solid transparent;" title="Gold"></div>
+                </div>
+                <div class="col-3">
+                  <div class="folder-color-option" data-color="#4FD1C7" style="background-color: #4FD1C7; height: 40px; border-radius: 8px; cursor: pointer; border: 2px solid transparent;" title="Cyan"></div>
+                </div>
+                <div class="col-3">
+                  <div class="folder-color-option" data-color="#9F7AEA" style="background-color: #9F7AEA; height: 40px; border-radius: 8px; cursor: pointer; border: 2px solid transparent;" title="Light Purple"></div>
+                </div>
+              </div>
+              <div class="row g-2">
+                <div class="col-3">
+                  <div class="folder-color-option" data-color="#E53E3E" style="background-color: #E53E3E; height: 40px; border-radius: 8px; cursor: pointer; border: 2px solid transparent;" title="Crimson"></div>
+                </div>
+                <div class="col-3">
+                  <div class="folder-color-option" data-color="#D69E2E" style="background-color: #D69E2E; height: 40px; border-radius: 8px; cursor: pointer; border: 2px solid transparent;" title="Yellow"></div>
+                </div>
+                <div class="col-3">
+                  <div class="folder-color-option" data-color="#68D391" style="background-color: #68D391; height: 40px; border-radius: 8px; cursor: pointer; border: 2px solid transparent;" title="Light Blue"></div>
+                </div>
+                <div class="col-3">
+                  <div class="folder-color-option" data-color="#667EEA" style="background-color: #667EEA; height: 40px; border-radius: 8px; cursor: pointer; border: 2px solid transparent;" title="Indigo"></div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="mb-4">
+              <label class="form-label">Preview</label>
+              <div class="d-flex align-items-center p-3 border rounded">
+                <div id="folderPreview" style="width: 24px; height: 24px; color: #38A169; margin-right: 12px;">
+                  <i class="bi bi-folder-fill fs-5"></i>
+                </div>
+                <span id="folderPreviewName" class="text-muted">My New Folder</span>
+              </div>
+            </div>
+            
+            <div class="d-flex gap-2">
+              <button type="button" class="btn btn-secondary w-50" id="folderCancelBtn">Cancel</button>
+              <button type="submit" class="btn btn-primary w-50">Create Folder</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
     <!-- Password Recovery overlay -->
     <div id="recoveryOverlay" class="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark bg-opacity-75 d-none" style="z-index:10001;">
       <div class="card shadow-lg" style="width:350px;">

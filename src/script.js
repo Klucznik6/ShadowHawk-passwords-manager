@@ -251,7 +251,11 @@ function renderFolders() {
     li.className = [];
     li.classList.add(f.system ? (f.id === "all" ? "default-folder" : "favorites-folder") : "custom-folder");
     if (f.id === selectedFolder) li.classList.add("selected");
-    li.innerHTML = `<i class="bi ${f.icon}"></i> <span>${f.name}</span>`;
+    
+    // Create icon with custom color if available
+    const iconColor = f.color ? `style="color: ${f.color};"` : '';
+    li.innerHTML = `<i class="bi ${f.icon}" ${iconColor}></i> <span>${f.name}</span>`;
+    
     if (!f.system) li.innerHTML += `<i class="bi bi-trash folder-delete ms-2" title="Delete" data-folder="${f.id}"></i>`;
     li.onclick = () => { selectedFolder = f.id; selectedPasswordId = null; addEditMode = null; renderAll(); };
     if (!f.system) {
@@ -1282,36 +1286,8 @@ function renderAll() {
 
 // --- Event handlers ---
 document.getElementById('addFolderBtn').onclick = () => {
-  // Prevent multiple inputs
-  if (document.getElementById('newFolderInput')) return;
-
-  const btn = document.getElementById('addFolderBtn');
-  const input = document.createElement('input');
-  input.type = 'text';
-  input.id = 'newFolderInput';
-  input.className = 'form-control form-control-sm mt-2';
-  input.placeholder = 'Enter folder name...';
-
-  btn.parentNode.appendChild(input);
-  input.focus();
-
-  input.onkeydown = (e) => {
-    if (e.key === 'Enter') {
-      const name = input.value.trim();
-      if (!name) return;
-      let folders = getFolders();
-      let id = Math.random().toString(36).slice(2);
-      folders.push({ id, name, icon: "bi-folder-fill", system: false });
-      saveFolders(folders);
-      selectedFolder = id;
-      renderAll();
-      input.remove();
-    }
-    if (e.key === 'Escape') {
-      input.remove();
-    }
-  };
-  input.onblur = () => input.remove();
+  document.getElementById('folderModal').classList.remove('d-none');
+  document.getElementById('folderName').focus();
 };
 
 // Update the addPasswordBtn event handler to fix any issues
@@ -1362,6 +1338,94 @@ document.getElementById('logoutBtn').onclick = () => {
 document.getElementById('searchInput').oninput = function() {
   renderPasswordsList();
 };
+
+// Folder Modal Event Handlers
+document.getElementById('folderCancelBtn').onclick = () => {
+  document.getElementById('folderModal').classList.add('d-none');
+  resetFolderForm();
+};
+
+document.getElementById('folderForm').onsubmit = (e) => {
+  e.preventDefault();
+  createFolderFromModal();
+};
+
+// Folder name input event
+document.getElementById('folderName').oninput = (e) => {
+  updateFolderPreview();
+};
+
+// Folder color selection
+document.addEventListener('click', (e) => {
+  if (e.target.classList.contains('folder-color-option')) {
+    // Remove selection from all options
+    document.querySelectorAll('.folder-color-option').forEach(option => {
+      option.classList.remove('selected');
+      option.style.border = '2px solid transparent';
+    });
+    
+    // Add selection to clicked option
+    e.target.classList.add('selected');
+    e.target.style.border = '2px solid #0066CC';
+    
+    // Update preview
+    updateFolderPreview();
+  }
+});
+
+function resetFolderForm() {
+  document.getElementById('folderName').value = '';
+  document.querySelectorAll('.folder-color-option').forEach(option => {
+    option.classList.remove('selected');
+    option.style.border = '2px solid transparent';
+  });
+  // Select default green color
+  const defaultColor = document.querySelector('[data-color="#38A169"]');
+  if (defaultColor) {
+    defaultColor.classList.add('selected');
+    defaultColor.style.border = '2px solid #0066CC';
+  }
+  updateFolderPreview();
+}
+
+function updateFolderPreview() {
+  const name = document.getElementById('folderName').value.trim() || 'My New Folder';
+  const selectedColor = document.querySelector('.folder-color-option.selected');
+  const color = selectedColor ? selectedColor.dataset.color : '#38A169';
+  
+  document.getElementById('folderPreviewName').textContent = name;
+  document.getElementById('folderPreview').style.color = color;
+}
+
+function createFolderFromModal() {
+  const name = document.getElementById('folderName').value.trim();
+  if (!name) {
+    alert('Please enter a folder name.');
+    return;
+  }
+  
+  const selectedColor = document.querySelector('.folder-color-option.selected');
+  const color = selectedColor ? selectedColor.dataset.color : '#38A169';
+  
+  let folders = getFolders();
+  let id = Math.random().toString(36).slice(2);
+  
+  folders.push({ 
+    id, 
+    name, 
+    icon: "bi-folder-fill", 
+    system: false,
+    color: color
+  });
+  
+  saveFolders(folders);
+  selectedFolder = id;
+  renderAll();
+  
+  // Close modal and reset form
+  document.getElementById('folderModal').classList.add('d-none');
+  resetFolderForm();
+}
 
 document.getElementById('exportPwdsBtn').onclick = () => {
   exportPasswordsWithCode();
@@ -1709,6 +1773,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Password visibility toggle functionality
   setupPasswordToggle();
+
+  // Initialize folder modal
+  resetFolderForm();
 
   document.getElementById('settingsBtn').onclick = () => {
     document.getElementById('settingsModal').classList.remove('d-none');
