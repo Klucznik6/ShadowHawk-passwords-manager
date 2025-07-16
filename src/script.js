@@ -381,7 +381,41 @@ function renderPasswordsList() {
       }
       
       // Create the icon element
-      if (isWebsite && websiteUrl) {
+      if (pw.customIconUrl) {
+        // Use custom icon URL with transparent background
+        iconElement = `<div class="pw-favicon me-2">
+          <div class="pw-icon-box" style="
+            width: 22px;
+            height: 22px;
+            background-color: transparent;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+          ">
+            <img src="${pw.customIconUrl}" style="width: 18px; height: 18px; object-fit: contain;" 
+                 onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <i class="bi bi-image" style="color: #6c757d; font-size: 12px; display: none;"></i>
+          </div>
+        </div>`;
+      } else if (pw.icon && pw.color) {
+        // Use custom icon and color
+        iconElement = `<div class="pw-favicon me-2">
+          <div class="pw-icon-box" style="
+            width: 22px;
+            height: 22px;
+            background-color: ${pw.color};
+            border-radius: 6px;
+            color: white;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 3px rgba(0,0,0,0.1);
+          "><i class="bi ${pw.icon}"></i></div>
+        </div>`;
+      } else if (isWebsite && websiteUrl) {
         // Use favicon for websites
         const faviconUrl = getFaviconUrl(websiteUrl);
         iconElement = `<div class="pw-favicon me-2">
@@ -556,7 +590,42 @@ function renderDetails() {
     
     // Choose the appropriate icon display
     let iconDisplay;
-    if (isWebsite && faviconUrl) {
+    if (item.customIconUrl) {
+      // Use custom icon URL with transparent background
+      iconDisplay = `
+        <div class="pw-icon-box" style="
+          width: 60px;
+          height: 60px;
+          background-color: transparent;
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin: 0 auto;
+        ">
+          <img src="${item.customIconUrl}" style="width: 48px; height: 48px; object-fit: contain;" 
+               onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';">
+          <i class="bi bi-image" style="color: #6c757d; font-size: 24px; display: none;"></i>
+        </div>
+      `;
+    } else if (item.icon && item.color) {
+      // Use custom built-in icon with chosen color
+      iconDisplay = `
+        <div class="pw-icon-box" style="
+          width: 60px;
+          height: 60px;
+          background-color: ${item.color};
+          border-radius: 12px;
+          color: white;
+          font-size: 28px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+          margin: 0 auto;
+        "><i class="bi ${item.icon}"></i></div>
+      `;
+    } else if (isWebsite && faviconUrl) {
       // For websites with favicons, use the favicon
       iconDisplay = `<img src="${faviconUrl}" class="pw-icon-img" onerror="this.onerror=null; this.src=''; this.classList.add('bi', 'bi-globe');" style="width: 48px; height: 48px; object-fit: contain;">`;
     } else {
@@ -1554,9 +1623,89 @@ function setupPasswordToggle() {
   }
 }
 
+// Password generation settings
+const PASSWORD_SETTINGS_KEY = 'shadowhawk_password_settings';
+
+function getDefaultPasswordSettings() {
+  return {
+    length: 16,
+    includeUppercase: true,
+    includeLowercase: true,
+    includeNumbers: true,
+    includeSymbols: true,
+    excludeAmbiguous: false
+  };
+}
+
+function loadPasswordSettings() {
+  const saved = localStorage.getItem(PASSWORD_SETTINGS_KEY);
+  const settings = saved ? JSON.parse(saved) : getDefaultPasswordSettings();
+  
+  // Apply settings to UI
+  document.getElementById('passwordLength').value = settings.length;
+  document.getElementById('passwordLengthValue').textContent = settings.length;
+  document.getElementById('includeUppercase').checked = settings.includeUppercase;
+  document.getElementById('includeLowercase').checked = settings.includeLowercase;
+  document.getElementById('includeNumbers').checked = settings.includeNumbers;
+  document.getElementById('includeSymbols').checked = settings.includeSymbols;
+  document.getElementById('excludeAmbiguous').checked = settings.excludeAmbiguous;
+}
+
+function savePasswordSettings() {
+  const settings = {
+    length: parseInt(document.getElementById('passwordLength').value),
+    includeUppercase: document.getElementById('includeUppercase').checked,
+    includeLowercase: document.getElementById('includeLowercase').checked,
+    includeNumbers: document.getElementById('includeNumbers').checked,
+    includeSymbols: document.getElementById('includeSymbols').checked,
+    excludeAmbiguous: document.getElementById('excludeAmbiguous').checked
+  };
+  
+  localStorage.setItem(PASSWORD_SETTINGS_KEY, JSON.stringify(settings));
+}
+
+function getPasswordSettings() {
+  const saved = localStorage.getItem(PASSWORD_SETTINGS_KEY);
+  return saved ? JSON.parse(saved) : getDefaultPasswordSettings();
+}
+
+function generatePasswordWithSettings() {
+  const settings = getPasswordSettings();
+  
+  // Ensure at least one character type is selected
+  if (!settings.includeUppercase && !settings.includeLowercase && 
+      !settings.includeNumbers && !settings.includeSymbols) {
+    alert('At least one character type must be selected for password generation.');
+    return '';
+  }
+  
+  let chars = '';
+  
+  if (settings.includeUppercase) {
+    chars += settings.excludeAmbiguous ? 'ABCDEFGHJKLMNPQRSTUVWXYZ' : 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  }
+  if (settings.includeLowercase) {
+    chars += settings.excludeAmbiguous ? 'abcdefghijkmnopqrstuvwxyz' : 'abcdefghijklmnopqrstuvwxyz';
+  }
+  if (settings.includeNumbers) {
+    chars += settings.excludeAmbiguous ? '23456789' : '0123456789';
+  }
+  if (settings.includeSymbols) {
+    chars += '!@#$%^&*()_+~`|}{[]\\:;?><,./-=';
+  }
+  
+  let password = '';
+  for (let i = 0; i < settings.length; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  
+  return password;
+}
+
 // Settings modal logic
 document.addEventListener('DOMContentLoaded', () => {
   loadTheme();
+  loadPasswordSettings();
 
   // Password visibility toggle functionality
   setupPasswordToggle();
@@ -1566,12 +1715,18 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   document.getElementById('settingsCloseBtn').onclick = () => {
     document.getElementById('settingsModal').classList.add('d-none');
+    savePasswordSettings();
   };
   document.getElementById('themeLight').onclick = () => {
     setTheme('light');
   };
   document.getElementById('themeDark').onclick = () => {
     setTheme('dark');
+  };
+  
+  // Password generation settings
+  document.getElementById('passwordLength').oninput = (e) => {
+    document.getElementById('passwordLengthValue').textContent = e.target.value;
   };
 });
 
@@ -2466,6 +2621,37 @@ function renderDeletedItems(pane) {
                         item.cardBrand === 'amex' ? 'bi-credit-card' : 
                         'bi-credit-card-2-front-fill';
       iconHTML = `<i class="pw-icon ${iconClass}" style="font-size: 2.5rem;"></i>`;
+    } else if (item.customIconUrl) {
+      // Use custom icon URL with transparent background
+      iconHTML = `
+        <div class="pw-icon-box" style="
+          width: 40px;
+          height: 40px;
+          background-color: transparent;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        ">
+          <img src="${item.customIconUrl}" style="width: 32px; height: 32px; object-fit: contain;" 
+               onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';">
+          <i class="bi bi-image" style="color: #6c757d; font-size: 16px; display: none;"></i>
+        </div>`;
+    } else if (item.icon && item.color) {
+      // Use custom built-in icon with chosen color
+      iconHTML = `
+        <div class="pw-icon-box" style="
+          width: 40px;
+          height: 40px;
+          background-color: ${item.color};
+          border-radius: 8px;
+          color: white;
+          font-size: 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 3px 5px rgba(0,0,0,0.1);
+        "><i class="bi ${item.icon}"></i></div>`;
     } else if (faviconUrl) {
       // Use website favicon
       iconHTML = `<img src="${faviconUrl}" class="pw-icon-img" onerror="this.onerror=null; this.src=''; this.classList.add('bi', 'bi-globe');" style="width: 40px; height: 40px; object-fit: contain;">`;
@@ -3011,6 +3197,92 @@ function renderAddEditForm(editId) {
         <label class="form-label">Title</label>
         <input type="text" class="form-control" name="title" value="${editing ? decrypt(password.title || "") : ""}" required placeholder="Website or App Name">
       </div>
+      
+      <!-- Icon and Color Selection -->
+      <div class="mb-3">
+        <label class="form-label">Icon & Color</label>
+        
+        <!-- Icon Type Selection -->
+        <div class="mb-2">
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="iconType" id="iconTypeBuiltIn" value="builtin" ${!editing || !password.customIconUrl ? 'checked' : ''}>
+            <label class="form-check-label" for="iconTypeBuiltIn">
+              Built-in Icons
+            </label>
+          </div>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="iconType" id="iconTypeCustom" value="custom" ${editing && password.customIconUrl ? 'checked' : ''}>
+            <label class="form-check-label" for="iconTypeCustom">
+              Custom URL
+            </label>
+          </div>
+        </div>
+        
+        <div class="d-flex align-items-center gap-3">
+          <!-- Built-in Icon Selection -->
+          <div class="dropdown" id="builtInIconSection" style="display: ${!editing || !password.customIconUrl ? 'block' : 'none'};">
+            <button class="btn btn-outline-secondary dropdown-toggle d-flex align-items-center" type="button" id="iconDropdown">
+              <i class="bi ${editing && password.icon ? password.icon : 'bi-globe'}" id="selectedIcon"></i>
+              <span class="ms-2">Choose Icon</span>
+            </button>
+            <ul class="dropdown-menu" style="max-height: 200px; overflow-y: auto; display: none;">
+              <li><a class="dropdown-item" href="#" data-icon="bi-globe"><i class="bi bi-globe me-2"></i>Website</a></li>
+              <li><a class="dropdown-item" href="#" data-icon="bi-envelope"><i class="bi bi-envelope me-2"></i>Email</a></li>
+              <li><a class="dropdown-item" href="#" data-icon="bi-shield-lock"><i class="bi bi-shield-lock me-2"></i>Security</a></li>
+              <li><a class="dropdown-item" href="#" data-icon="bi-bank"><i class="bi bi-bank me-2"></i>Banking</a></li>
+              <li><a class="dropdown-item" href="#" data-icon="bi-credit-card"><i class="bi bi-credit-card me-2"></i>Payment</a></li>
+              <li><a class="dropdown-item" href="#" data-icon="bi-person"><i class="bi bi-person me-2"></i>Personal</a></li>
+              <li><a class="dropdown-item" href="#" data-icon="bi-briefcase"><i class="bi bi-briefcase me-2"></i>Work</a></li>
+              <li><a class="dropdown-item" href="#" data-icon="bi-controller"><i class="bi bi-controller me-2"></i>Gaming</a></li>
+              <li><a class="dropdown-item" href="#" data-icon="bi-camera"><i class="bi bi-camera me-2"></i>Social</a></li>
+              <li><a class="dropdown-item" href="#" data-icon="bi-cloud"><i class="bi bi-cloud me-2"></i>Cloud</a></li>
+              <li><a class="dropdown-item" href="#" data-icon="bi-server"><i class="bi bi-server me-2"></i>Server</a></li>
+              <li><a class="dropdown-item" href="#" data-icon="bi-phone"><i class="bi bi-phone me-2"></i>Mobile</a></li>
+              <li><a class="dropdown-item" href="#" data-icon="bi-laptop"><i class="bi bi-laptop me-2"></i>Computer</a></li>
+              <li><a class="dropdown-item" href="#" data-icon="bi-wifi"><i class="bi bi-wifi me-2"></i>Network</a></li>
+              <li><a class="dropdown-item" href="#" data-icon="bi-key"><i class="bi bi-key me-2"></i>Access</a></li>
+            </ul>
+          </div>
+          
+          <!-- Custom URL Input -->
+          <div id="customIconSection" style="display: ${editing && password.customIconUrl ? 'block' : 'none'};">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <input type="url" class="form-control" id="customIconUrl" name="customIconUrl" 
+                     value="${editing && password.customIconUrl ? password.customIconUrl : ''}" 
+                     placeholder="https://example.com/logo.png">
+              <div id="customIconPreview" style="width: 32px; height: 32px; border: 1px solid #dee2e6; border-radius: 4px; display: flex; align-items: center; justify-content: center; background: #f8f9fa;">
+                ${editing && password.customIconUrl ? `<img src="${password.customIconUrl}" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                <i class="bi bi-image" style="color: #6c757d; display: none;"></i>` : `<i class="bi bi-image" style="color: #6c757d;"></i>`}
+              </div>
+            </div>
+            
+            <!-- Popular Platform Icons -->
+            <div class="mb-2">
+              <small class="text-muted">Popular platforms:</small>
+              <div class="d-flex flex-wrap gap-1 mt-1">
+                <button type="button" class="btn btn-sm btn-outline-secondary platform-icon-btn" data-url="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg" title="Google">Google</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary platform-icon-btn" data-url="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/facebook/facebook-original.svg" title="Facebook">Facebook</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary platform-icon-btn" data-url="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/twitter/twitter-original.svg" title="Twitter">Twitter</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary platform-icon-btn" data-url="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg" title="GitHub">GitHub</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary platform-icon-btn" data-url="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/microsoft/microsoft-original.svg" title="Microsoft">Microsoft</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary platform-icon-btn" data-url="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/apple/apple-original.svg" title="Apple">Apple</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary platform-icon-btn" data-url="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/linkedin/linkedin-original.svg" title="LinkedIn">LinkedIn</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary platform-icon-btn" data-url="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/slack/slack-original.svg" title="Slack">Slack</button>
+              </div>
+            </div>
+            
+            <small class="form-text text-muted">Enter URL to custom icon/logo (PNG, JPG, SVG) or click a platform button above</small>
+          </div>
+          
+          <!-- Color Picker -->
+          <div class="d-flex align-items-center">
+            <label for="colorPicker" class="form-label me-2 mb-0">Color:</label>
+            <input type="color" class="form-control form-control-color" id="colorPicker" name="color" value="${editing && password.color ? password.color : '#0d6efd'}" title="Choose color">
+          </div>
+        </div>
+        <input type="hidden" name="icon" id="iconInput" value="${editing && password.icon ? password.icon : 'bi-globe'}">
+      </div>
+      
       <div class="mb-3">
         <label class="form-label">Username/Email</label>
         <input type="text" class="form-control" name="username" value="${editing ? decrypt(password.username || "") : ""}" placeholder="Username or Email">
@@ -3053,25 +3325,195 @@ function renderAddEditForm(editId) {
     }
   };
   
+  // Title input - auto-detect website favicon
+  const titleInput = document.querySelector('input[name="title"]');
+  
+  titleInput.oninput = (e) => {
+    const title = e.target.value.trim();
+    
+    // Check if the title looks like a URL
+    if (title && (title.includes('http') || title.includes('.com') || title.includes('.org') || 
+                  title.includes('.net') || title.includes('.io') || title.includes('.co') ||
+                  title.includes('.edu') || title.includes('.gov'))) {
+      
+      // Extract domain from URL
+      let domain = title;
+      try {
+        if (!title.startsWith('http')) {
+          domain = 'https://' + title;
+        }
+        const url = new URL(domain);
+        domain = url.hostname.replace('www.', '');
+        
+        // Generate favicon URL
+        const faviconUrl = 'https://www.google.com/s2/favicons?domain=' + domain + '&sz=64';
+        
+        // Get the radio buttons and input
+        const iconTypeCustom = document.getElementById('iconTypeCustom');
+        const iconTypeBuiltIn = document.getElementById('iconTypeBuiltIn');
+        const customIconUrlInput = document.getElementById('customIconUrl');
+        
+        // Switch to custom URL mode and set the favicon
+        iconTypeCustom.checked = true;
+        iconTypeBuiltIn.checked = false;
+        
+        // Trigger the radio button change event
+        iconTypeCustom.dispatchEvent(new Event('change'));
+        
+        // Set the favicon URL
+        customIconUrlInput.value = faviconUrl;
+        
+        // Update the preview
+        customIconUrlInput.dispatchEvent(new Event('input'));
+        
+      } catch (e) {
+        // If URL parsing fails, try a simpler approach
+        const simpleDomain = title.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
+        if (simpleDomain.includes('.')) {
+          const faviconUrl = 'https://www.google.com/s2/favicons?domain=' + simpleDomain + '&sz=64';
+          
+          const iconTypeCustom = document.getElementById('iconTypeCustom');
+          const iconTypeBuiltIn = document.getElementById('iconTypeBuiltIn');
+          const customIconUrlInput = document.getElementById('customIconUrl');
+          
+          iconTypeCustom.checked = true;
+          iconTypeBuiltIn.checked = false;
+          iconTypeCustom.dispatchEvent(new Event('change'));
+          
+          customIconUrlInput.value = faviconUrl;
+          customIconUrlInput.dispatchEvent(new Event('input'));
+        }
+      }
+    }
+  };
+  
+  // Icon dropdown functionality - simple click-based approach
+  const iconDropdown = document.getElementById('iconDropdown');
+  const iconDropdownMenu = iconDropdown.nextElementSibling;
+  
+  iconDropdown.onclick = (e) => {
+    e.preventDefault();
+    iconDropdownMenu.style.display = iconDropdownMenu.style.display === 'block' ? 'none' : 'block';
+  };
+  
+  // Close dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!iconDropdown.contains(e.target) && !iconDropdownMenu.contains(e.target)) {
+      iconDropdownMenu.style.display = 'none';
+    }
+  });
+  
+  const iconDropdownItems = document.querySelectorAll('#iconDropdown + .dropdown-menu .dropdown-item');
+  iconDropdownItems.forEach(item => {
+    item.onclick = (e) => {
+      e.preventDefault();
+      const iconClass = item.getAttribute('data-icon');
+      const iconText = item.textContent.trim();
+      
+      // Update the selected icon display
+      document.getElementById('selectedIcon').className = `bi ${iconClass}`;
+      document.getElementById('iconInput').value = iconClass;
+      
+      // Update dropdown button text
+      const dropdownButton = document.getElementById('iconDropdown');
+      dropdownButton.innerHTML = `<i class="bi ${iconClass}" id="selectedIcon"></i><span class="ms-2">${iconText}</span>`;
+      
+      // Close dropdown
+      iconDropdownMenu.style.display = 'none';
+    };
+  });
+  
+  // Color picker functionality
+  document.getElementById('colorPicker').onchange = (e) => {
+    // Update any preview elements if needed
+    const selectedIcon = document.getElementById('selectedIcon');
+    selectedIcon.style.color = e.target.value;
+  };
+  
+  // Icon type radio button functionality
+  const iconTypeBuiltIn = document.getElementById('iconTypeBuiltIn');
+  const iconTypeCustom = document.getElementById('iconTypeCustom');
+  const builtInIconSection = document.getElementById('builtInIconSection');
+  const customIconSection = document.getElementById('customIconSection');
+  const colorPicker = document.getElementById('colorPicker');
+  
+  iconTypeBuiltIn.onchange = () => {
+    if (iconTypeBuiltIn.checked) {
+      builtInIconSection.style.display = 'block';
+      customIconSection.style.display = 'none';
+      // Enable color picker for built-in icons
+      colorPicker.disabled = false;
+      colorPicker.parentElement.style.opacity = '1';
+    }
+  };
+  
+  iconTypeCustom.onchange = () => {
+    if (iconTypeCustom.checked) {
+      builtInIconSection.style.display = 'none';
+      customIconSection.style.display = 'block';
+      // Disable color picker for custom URLs
+      colorPicker.disabled = true;
+      colorPicker.parentElement.style.opacity = '0.5';
+    }
+  };
+  
+  // Set initial color picker state based on current selection
+  if (iconTypeCustom.checked) {
+    colorPicker.disabled = true;
+    colorPicker.parentElement.style.opacity = '0.5';
+  } else {
+    colorPicker.disabled = false;
+    colorPicker.parentElement.style.opacity = '1';
+  }
+  
+  // Custom icon URL preview functionality
+  const customIconUrlInput = document.getElementById('customIconUrl');
+  const customIconPreview = document.getElementById('customIconPreview');
+  
+  customIconUrlInput.oninput = (e) => {
+    const url = e.target.value.trim();
+    if (url) {
+      // Update preview
+      customIconPreview.innerHTML = `
+        <img src="${url}" style="width: 100%; height: 100%; object-fit: contain;" 
+             onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+        <i class="bi bi-image" style="color: #6c757d; display: none;"></i>
+      `;
+    } else {
+      // Reset to default
+      customIconPreview.innerHTML = `<i class="bi bi-image" style="color: #6c757d;"></i>`;
+    }
+  };
+  
+  // Platform icon buttons functionality
+  const platformIconBtns = document.querySelectorAll('.platform-icon-btn');
+  platformIconBtns.forEach(btn => {
+    btn.onclick = (e) => {
+      e.preventDefault();
+      const iconUrl = btn.getAttribute('data-url');
+      customIconUrlInput.value = iconUrl;
+      
+      // Trigger the input event to update preview
+      customIconUrlInput.dispatchEvent(new Event('input'));
+    };
+  });
+  
   // Generate Password button
   document.getElementById('generatePasswordBtn').onclick = () => {
     const field = document.getElementById('passwordField');
     
-    // Generate a strong password with letters, numbers and symbols
-    const length = 16;
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+~`|}{[]\\:;?><,./-=';
-    let password = '';
-    for (let i = 0; i < length; i++) {
-      password += chars.charAt(Math.floor(Math.random() * chars.length));
+    // Generate password using user settings
+    const password = generatePasswordWithSettings();
+    
+    if (password) {
+      field.type = "text";
+      field.value = password;
+      document.getElementById('showPasswordBtn').innerHTML = '<i class="bi bi-eye-slash"></i>';
+      
+      // Flash the field to indicate it changed
+      field.classList.add('bg-light');
+      setTimeout(() => field.classList.remove('bg-light'), 200);
     }
-    
-    field.type = "text";
-    field.value = password;
-    document.getElementById('showPasswordBtn').innerHTML = '<i class="bi bi-eye-slash"></i>';
-    
-    // Flash the field to indicate it changed
-    field.classList.add('bg-light');
-    setTimeout(() => field.classList.remove('bg-light'), 200);
   };
 
   // Cancel button
@@ -3100,6 +3542,9 @@ function renderAddEditForm(editId) {
       username: encrypt(data.username || ""),
       password: encrypt(data.password),
       notes: encrypt(data.notes || ""),
+      icon: data.iconType === 'custom' ? null : (data.icon || 'bi-globe'),
+      color: data.color || '#0d6efd',
+      customIconUrl: data.iconType === 'custom' ? data.customIconUrl : null,
       created: editing ? password.created : now,
       updated: now,
       favorite: editing ? password.favorite || false : false

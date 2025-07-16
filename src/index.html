@@ -208,6 +208,55 @@
             </div>
           </div>
           <div class="mb-4">
+            <label class="form-label">Password Generation</label>
+            <div class="mb-3">
+              <label for="passwordLength" class="form-label">Length: <span id="passwordLengthValue">16</span></label>
+              <input type="range" class="form-range" id="passwordLength" min="8" max="32" value="16">
+            </div>
+            <div class="row g-2">
+              <div class="col-6">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="includeUppercase" checked>
+                  <label class="form-check-label" for="includeUppercase">
+                    <small>Uppercase (A-Z)</small>
+                  </label>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="includeLowercase" checked>
+                  <label class="form-check-label" for="includeLowercase">
+                    <small>Lowercase (a-z)</small>
+                  </label>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="includeNumbers" checked>
+                  <label class="form-check-label" for="includeNumbers">
+                    <small>Numbers (0-9)</small>
+                  </label>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="includeSymbols" checked>
+                  <label class="form-check-label" for="includeSymbols">
+                    <small>Symbols (!@#$...)</small>
+                  </label>
+                </div>
+              </div>
+            </div>
+            <div class="mt-2">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="excludeAmbiguous">
+                <label class="form-check-label" for="excludeAmbiguous">
+                  <small>Exclude ambiguous characters (0, O, l, I)</small>
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="mb-4">
             <label class="form-label">Data Management</label>
             <div class="d-flex gap-2">
               <button id="exportPwdsBtn" class="btn btn-sm btn-outline-success w-50">
