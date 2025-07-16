@@ -1,5 +1,34 @@
 // --- User/Folders/Passwords, localStorage, encryption, UI logic ---
 
+// Window Controls for Custom Title Bar
+function initializeWindowControls() {
+  const closeBtn = document.getElementById('closeBtn');
+  const minimizeBtn = document.getElementById('minimizeBtn');
+  
+  if (closeBtn) {
+    closeBtn.addEventListener('click', () => {
+      window.close();
+    });
+  }
+  
+  if (minimizeBtn) {
+    minimizeBtn.addEventListener('click', () => {
+      // Since we can't directly minimize from renderer, we'll hide the window
+      if (window.electronAPI) {
+        window.electronAPI.minimize();
+      } else {
+        // Fallback - just hide the app content
+        document.body.style.display = 'none';
+      }
+    });
+  }
+}
+
+// Initialize window controls when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+  initializeWindowControls();
+});
+
 // Simple icons for services
 const ICONS = [
   "bi bi-box", "bi bi-key", "bi bi-envelope", "bi bi-globe", "bi bi-credit-card-2-front", "bi bi-person-badge", "bi bi-lock", "bi bi-shield-check", "bi bi-chat-square-text"

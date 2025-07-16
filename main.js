@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, shell } = require('electron')
+const { app, BrowserWindow, Menu, shell, ipcMain } = require('electron')
 const path = require('path')
 
 // Fix GPU cache issues
@@ -6,6 +6,12 @@ app.commandLine.appendSwitch('--disable-gpu-sandbox')
 app.commandLine.appendSwitch('--disable-software-rasterizer')
 app.commandLine.appendSwitch('--disable-gpu-process-prelaunch')
 app.commandLine.appendSwitch('--no-sandbox')
+app.commandLine.appendSwitch('--disable-dev-shm-usage')
+app.commandLine.appendSwitch('--disable-gpu-process-crash-limit')
+app.commandLine.appendSwitch('--disable-disk-cache')
+app.commandLine.appendSwitch('--disable-extensions-file-access-check')
+app.commandLine.appendSwitch('--disable-web-security')
+app.commandLine.appendSwitch('--ignore-certificate-errors')
 
 // Keep a global reference of the window object
 let mainWindow
@@ -23,13 +29,16 @@ const createWindow = () => {
       nodeIntegration: false, // Security best practice
       contextIsolation: true, // Security best practice
       enableRemoteModule: false, // Security best practice
-      webSecurity: true,
+      webSecurity: false, // Temporarily disabled for cache issues
       experimentalFeatures: false,
       backgroundThrottling: false,
-      offscreen: false
+      offscreen: false,
+      partition: 'persist:main',
+      cache: false,
+      preload: path.join(__dirname, 'preload.js')
     },
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
-    frame: true,
+    frame: false,
     resizable: true,
     maximizable: true,
     minimizable: true,
@@ -70,6 +79,19 @@ const createWindow = () => {
     mainWindow.webContents.openDevTools()
   }
 }
+
+// IPC handlers for window controls
+ipcMain.handle('minimize-window', () => {
+  if (mainWindow) {
+    mainWindow.minimize()
+  }
+})
+
+ipcMain.handle('close-window', () => {
+  if (mainWindow) {
+    mainWindow.close()
+  }
+})
 
 // Create application menu
 const setApplicationMenu = () => {
@@ -183,6 +205,16 @@ const setApplicationMenu = () => {
 
 // App event handlers
 app.whenReady().then(() => {
+  // Clear any existing cache
+  try {
+    const { session } = require('electron')
+    session.defaultSession.clearCache(() => {
+      console.log('Cache cleared successfully')
+    })
+  } catch (error) {
+    console.log('Cache clear failed:', error)
+  }
+  
   createWindow()
 
   // On macOS, re-create window when dock icon is clicked

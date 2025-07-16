@@ -19,6 +19,139 @@
   --info-color: #3b82f6;
 }
 
+/* Custom Title Bar Styles */
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* Light Theme Title Bar */
+#customTitleBar {
+  background: linear-gradient(90deg, #f8fafc 0%, #e2e8f0 100%) !important;
+  border-bottom: 1px solid #cbd5e1;
+  color: #334155 !important;
+  font-size: 14px;
+  user-select: none;
+  min-height: 32px;
+  top: 0;
+  left: 0;
+  right: 0;
+  transition: all 0.3s ease;
+}
+
+/* Dark Theme Title Bar */
+[data-bs-theme="dark"] #customTitleBar {
+  background: linear-gradient(90deg, #1e293b 0%, #374151 100%) !important;
+  border-bottom: 1px solid #475569;
+  color: #f1f5f9 !important;
+}
+
+#customTitleBar button {
+  width: 28px;
+  height: 24px;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+/* Light Theme Button Styles */
+#customTitleBar button:hover {
+  background-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Dark Theme Button Styles */
+[data-bs-theme="dark"] #customTitleBar button:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Close and Minimize Button Specific Styles */
+#closeBtn:hover {
+  background-color: #dc3545 !important;
+  color: white !important;
+}
+
+#minimizeBtn:hover {
+  background-color: #6c757d !important;
+  color: white !important;
+}
+
+/* Light Theme Title Bar Button Colors */
+#customTitleBar button {
+  color: #64748b;
+}
+
+/* Dark Theme Title Bar Button Colors */
+[data-bs-theme="dark"] #customTitleBar button {
+  color: #cbd5e1;
+}
+
+.app-main-row {
+  height: calc(100vh - 32px - 24px); /* Title bar (32px) + container padding (24px) */
+}
+
+.app-sidebar {
+  height: calc(100vh - 32px - 24px);
+  max-height: calc(100vh - 32px - 24px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-sidebar .d-flex.flex-column.h-100 {
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.app-sidebar nav {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.app-sidebar .mt-auto {
+  margin-top: auto !important;
+  flex-shrink: 0;
+}
+
+.app-list, .app-detail {
+  height: calc(100vh - 32px - 24px);
+  max-height: calc(100vh - 32px - 24px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-passwords-list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.app-detail-content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* Ensure main content area uses available space */
+#app {
+  display: flex;
+  flex-direction: column;
+}
+
+#mainLayout {
+  flex: 1;
+  overflow: hidden;
+  height: calc(100vh - 32px);
+  max-height: calc(100vh - 32px);
+}
+
+#mainLayout .container-fluid {
+  height: 100%;
+  max-height: 100%;
+  padding: 12px; /* Reduced padding */
+}
+
 [data-bs-theme="dark"] {
   /* Dark Theme Variables */
   --bg-primary: #111827;
