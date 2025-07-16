@@ -385,7 +385,7 @@ html, body, #app {
   flex-direction: column;
 }
 
-.app-detail.watchtower-full {
+.app-detail.hackshield-full {
   flex-basis: 0;
   flex-grow: 1;
   max-width: 100%;
@@ -487,20 +487,20 @@ html, body, #app {
   color: white;
 }
 
-/* Watchtower dashboard */
-.watchtower-container {
+/* Hack Shield dashboard */
+.hackshield-container {
   margin-top: 30px;
   margin-bottom: 30px;
   padding: 0 15px;
 }
 
-.watchtower-container h4 {
+.hackshield-container h4 {
   font-weight: 600;
   margin-bottom: 1.5rem;
   color: var(--text-primary);
 }
 
-.watchtower-container .card {
+.hackshield-container .card {
   background: var(--bg-card);
   border: none;
   border-radius: 12px;
@@ -508,12 +508,12 @@ html, body, #app {
   transition: all 0.2s ease;
 }
 
-.watchtower-container .card:hover {
+.hackshield-container .card:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-lg);
 }
 
-.watchtower-container .card .fs-2 {
+.hackshield-container .card .fs-2 {
   font-weight: 700;
   color: var(--accent-primary);
 }
