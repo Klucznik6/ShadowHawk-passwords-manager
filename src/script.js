@@ -100,6 +100,9 @@ function getEncKeyKey(username) { return `pmx_enckey_${username}`; }
 function getDeletedPasswordsKey(username) { 
   return `pmx_deleted_${username}`; 
 }
+function getDeletedFoldersKey(username) { 
+  return `pmx_deleted_folders_${username}`; 
+}
 function getEncryptionKey() {
   if (!CURRENT_USER) return "";
   let key = localStorage.getItem(getEncKeyKey(CURRENT_USER));
@@ -211,6 +214,13 @@ function getDeletedPasswords() {
   // Sort by deleteDate descending (newest first)
   return items.sort((a, b) => b.deleteDate - a.deleteDate);
 }
+function getDeletedFolders() {
+  if (!CURRENT_USER) return [];
+  const key = getDeletedFoldersKey(CURRENT_USER);
+  const items = JSON.parse(localStorage.getItem(key) || "[]");
+  // Sort by deleteDate descending (newest first)
+  return items.sort((a, b) => b.deleteDate - a.deleteDate);
+}
 function savePasswords(folderId, items) {
   if (!CURRENT_USER) return;
   localStorage.setItem(getPasswordsKey(CURRENT_USER, folderId), JSON.stringify(items));
@@ -218,6 +228,10 @@ function savePasswords(folderId, items) {
 function saveDeletedPasswords(items) {
   if (!CURRENT_USER) return;
   localStorage.setItem(getDeletedPasswordsKey(CURRENT_USER), JSON.stringify(items));
+}
+function saveDeletedFolders(items) {
+  if (!CURRENT_USER) return;
+  localStorage.setItem(getDeletedFoldersKey(CURRENT_USER), JSON.stringify(items));
 }
 function getFaviconUrl(url) {
   try {
@@ -262,7 +276,34 @@ function renderFolders() {
       li.querySelector('.folder-delete').onclick = (e) => {
         e.stopPropagation();
         showConfirmModal(`Delete folder "${f.name}" and all its passwords?`, () => {
-          // Yes
+          // Yes - Move folder and its passwords to deleted items
+          const folderPasswords = getPasswords(f.id);
+          
+          // Move folder to deleted folders
+          const deletedFolders = getDeletedFolders();
+          const deletedFolder = {
+            ...f,
+            deleteDate: Date.now(),
+            passwordCount: folderPasswords.length
+          };
+          deletedFolders.push(deletedFolder);
+          saveDeletedFolders(deletedFolders);
+          
+          // Move all passwords from this folder to deleted passwords
+          if (folderPasswords.length > 0) {
+            const deletedPasswords = getDeletedPasswords();
+            folderPasswords.forEach(password => {
+              deletedPasswords.push({
+                ...password,
+                deleteDate: Date.now(),
+                deletedFromFolder: f.id,
+                deletedFromFolderName: f.name
+              });
+            });
+            saveDeletedPasswords(deletedPasswords);
+          }
+          
+          // Remove folder from active folders and clear its passwords
           localStorage.removeItem(getPasswordsKey(CURRENT_USER, f.id));
           let folders = getFolders().filter(ff => ff.id !== f.id);
           saveFolders(folders);
@@ -1181,14 +1222,22 @@ function permanentlyDeletePassword(id) {
 function cleanupOldDeletedItems() {
   if (!CURRENT_USER) return;
   
-  const deletedItems = getDeletedPasswords();
   const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
   
-  const updatedItems = deletedItems.filter(item => item.deleteDate > thirtyDaysAgo);
+  // Clean up old deleted passwords
+  const deletedPasswords = getDeletedPasswords();
+  const updatedPasswords = deletedPasswords.filter(item => item.deleteDate > thirtyDaysAgo);
   
-  // If items were removed, save the updated list
-  if (updatedItems.length !== deletedItems.length) {
-    saveDeletedPasswords(updatedItems);
+  if (updatedPasswords.length !== deletedPasswords.length) {
+    saveDeletedPasswords(updatedPasswords);
+  }
+  
+  // Clean up old deleted folders
+  const deletedFolders = getDeletedFolders();
+  const updatedFolders = deletedFolders.filter(item => item.deleteDate > thirtyDaysAgo);
+  
+  if (updatedFolders.length !== deletedFolders.length) {
+    saveDeletedFolders(updatedFolders);
   }
 }
 
@@ -2609,7 +2658,14 @@ function selectPassword(passwordId, folderId) {
 // Fix for rendering deleted cards in the Recently Deleted view
 
 function renderDeletedItems(pane) {
-  const deletedItems = getDeletedPasswords();
+  const deletedPasswords = getDeletedPasswords();
+  const deletedFolders = getDeletedFolders();
+  
+  // Combine and sort all deleted items by delete date
+  const allDeletedItems = [
+    ...deletedPasswords.map(item => ({ ...item, type: 'password' })),
+    ...deletedFolders.map(item => ({ ...item, type: 'folder' }))
+  ].sort((a, b) => b.deleteDate - a.deleteDate);
   
   // Using the same container style as Info Center
   pane.innerHTML = `
@@ -2632,7 +2688,7 @@ function renderDeletedItems(pane) {
   
   const container = document.getElementById('deletedItemsContainer');
   
-  if (deletedItems.length === 0) {
+  if (allDeletedItems.length === 0) {
     container.innerHTML = `
       <div class="text-center text-secondary mt-5 py-5">
         <i class="bi bi-trash fs-1 mb-3 opacity-50"></i>
@@ -2644,7 +2700,7 @@ function renderDeletedItems(pane) {
   }
   
   // Create cards with the same style as Info Center cards
-  deletedItems.forEach(item => {
+  allDeletedItems.forEach(item => {
     const deleteDate = new Date(item.deleteDate);
     const formattedDate = deleteDate.toLocaleDateString();
     const timeAgo = getTimeAgo(item.deleteDate);
@@ -2652,128 +2708,161 @@ function renderDeletedItems(pane) {
     const card = document.createElement('div');
     card.className = 'card shadow-sm mb-3';
     card.setAttribute('data-id', item.id);
+    card.setAttribute('data-type', item.type);
     
-    // Check if it's a payment card or a regular password
-    const isCard = item.isCard;
-    
-    // Extract title and determine if it's a URL
-    let fullTitle = isCard ? decrypt(item.cardholderName || "") : decrypt(item.title || "");
-    let displayTitle = fullTitle;
-    let faviconUrl = null;
-    
-    // Check if title is a URL and get clean display name and favicon
-    if (!isCard && (fullTitle.includes('http') || 
-        fullTitle.includes('.com') || 
-        fullTitle.includes('.org') || 
-        fullTitle.includes('.net') || 
-        fullTitle.includes('.io'))) {
+    if (item.type === 'folder') {
+      // Render deleted folder
+      const iconColor = item.color ? `style="color: ${item.color};"` : '';
       
-      // For display, show just the domain name
-      displayTitle = extractWebsiteNameFromURL(fullTitle);
-      
-      // Get favicon URL
-      faviconUrl = getFaviconUrl(fullTitle);
-    }
-    
-    const subtitle = isCard ? 
-      (decrypt(item.cardNumber || "").slice(-4) ? `•••• ${decrypt(item.cardNumber || "").slice(-4)}` : "Card") : 
-      decrypt(item.username || "");
-    
-    // Prepare icon HTML
-    let iconHTML;
-    
-    if (isCard) {
-      // Use card type icon
-      const iconClass = item.cardBrand === 'visa' ? 'bi-credit-card-fill' : 
-                        item.cardBrand === 'amex' ? 'bi-credit-card' : 
-                        'bi-credit-card-2-front-fill';
-      iconHTML = `<i class="pw-icon ${iconClass}" style="font-size: 2.5rem;"></i>`;
-    } else if (item.customIconUrl) {
-      // Use custom icon URL with transparent background
-      iconHTML = `
-        <div class="pw-icon-box" style="
-          width: 40px;
-          height: 40px;
-          background-color: transparent;
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        ">
-          <img src="${item.customIconUrl}" style="width: 32px; height: 32px; object-fit: contain;" 
-               onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';">
-          <i class="bi bi-image" style="color: #6c757d; font-size: 16px; display: none;"></i>
-        </div>`;
-    } else if (item.icon && item.color) {
-      // Use custom built-in icon with chosen color
-      iconHTML = `
-        <div class="pw-icon-box" style="
-          width: 40px;
-          height: 40px;
-          background-color: ${item.color};
-          border-radius: 8px;
-          color: white;
-          font-size: 20px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          box-shadow: 0 3px 5px rgba(0,0,0,0.1);
-        "><i class="bi ${item.icon}"></i></div>`;
-    } else if (faviconUrl) {
-      // Use website favicon
-      iconHTML = `<img src="${faviconUrl}" class="pw-icon-img" onerror="this.onerror=null; this.src=''; this.classList.add('bi', 'bi-globe');" style="width: 40px; height: 40px; object-fit: contain;">`;
-    } else {
-      // Use colored letter icon for non-websites
-      const firstLetter = displayTitle.charAt(0).toUpperCase();
-      const colorIndex = displayTitle.length % 10; // Get a consistent color based on title length
-      const colors = [
-        '#4285F4', '#EA4335', '#FBBC05', '#34A853', // Google colors
-        '#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c' // More vibrant colors
-      ];
-      const bgColor = colors[colorIndex];
-      
-      iconHTML = `
-        <div class="pw-icon-box" style="
-          width: 40px;
-          height: 40px;
-          background-color: ${bgColor};
-          border-radius: 8px;
-          color: white;
-          font-size: 20px;
-          font-weight: 600;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          box-shadow: 0 3px 5px rgba(0,0,0,0.1);
-        ">${firstLetter}</div>`;
-    }
-    
-    card.innerHTML = `
-      <div class="card-body">
-        <div class="d-flex align-items-center">
-          <div class="me-4">
-            ${iconHTML}
-          </div>
-          <div class="flex-grow-1">
-            <h5 class="mb-0">${displayTitle}</h5>
-            <p class="text-secondary small mb-1">${subtitle}</p>
-            <div class="text-secondary smaller">
-              Deleted: ${formattedDate} <span class="badge bg-light text-secondary">${timeAgo}</span>
+      card.innerHTML = `
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="me-3">
+              <i class="bi ${item.icon}" ${iconColor} style="font-size: 2.5rem;"></i>
             </div>
-          </div>
-          <div class="ms-3">
-            <div class="d-flex">
-              <button class="btn btn-sm btn-outline-primary restore-btn me-2" data-id="${item.id}">
-                <i class="bi bi-arrow-counterclockwise"></i> Restore
+            <div class="flex-grow-1">
+              <div class="d-flex justify-content-between align-items-start mb-1">
+                <h6 class="mb-0 fw-bold">${item.name}</h6>
+                <small class="text-muted">${timeAgo}</small>
+              </div>
+              <p class="text-muted small mb-1">Folder • ${item.passwordCount} item${item.passwordCount !== 1 ? 's' : ''}</p>
+              <p class="text-muted small mb-0">Deleted on ${formattedDate}</p>
+            </div>
+            <div class="ms-3">
+              <button class="btn btn-sm btn-outline-success me-2 restore-folder-btn" data-folder-id="${item.id}" title="Restore Folder">
+                <i class="bi bi-arrow-counterclockwise"></i>
               </button>
-              <button class="btn btn-sm btn-outline-danger delete-permanently-btn" data-id="${item.id}">
-                <i class="bi bi-trash"></i> Delete
+              <button class="btn btn-sm btn-outline-danger delete-folder-permanently-btn" data-folder-id="${item.id}" title="Delete Permanently">
+                <i class="bi bi-trash"></i>
               </button>
             </div>
           </div>
         </div>
-      </div>
-    `;
+      `;
+    } else {
+      // Render deleted password/card (existing logic)
+      const isCard = item.isCard;
+      
+      // Extract title and determine if it's a URL
+      let fullTitle = isCard ? decrypt(item.cardholderName || "") : decrypt(item.title || "");
+      let displayTitle = fullTitle;
+      let faviconUrl = null;
+      
+      // Check if title is a URL and get clean display name and favicon
+      if (!isCard && (fullTitle.includes('http') || 
+          fullTitle.includes('.com') || 
+          fullTitle.includes('.org') || 
+          fullTitle.includes('.net') || 
+          fullTitle.includes('.io'))) {
+        
+        // For display, show just the domain name
+        displayTitle = extractWebsiteNameFromURL(fullTitle);
+        
+        // Get favicon URL
+        faviconUrl = getFaviconUrl(fullTitle);
+      }
+      
+      const subtitle = isCard ? 
+        (decrypt(item.cardNumber || "").slice(-4) ? `•••• ${decrypt(item.cardNumber || "").slice(-4)}` : "Card") : 
+        decrypt(item.username || "");
+      
+      // Prepare icon HTML for passwords/cards
+      let iconHTML;
+      
+      if (isCard) {
+        // Use card type icon
+        const iconClass = item.cardBrand === 'visa' ? 'bi-credit-card-fill' : 
+                          item.cardBrand === 'amex' ? 'bi-credit-card' : 
+                          'bi-credit-card-2-front-fill';
+        iconHTML = `<i class="pw-icon ${iconClass}" style="font-size: 2.5rem;"></i>`;
+      } else if (item.customIconUrl) {
+        // Use custom icon URL with transparent background
+        iconHTML = `
+          <div class="pw-icon-box" style="
+            width: 40px;
+            height: 40px;
+            background-color: transparent;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          ">
+            <img src="${item.customIconUrl}" style="width: 32px; height: 32px; object-fit: contain;" 
+                 onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <i class="bi bi-image" style="color: #6c757d; font-size: 16px; display: none;"></i>
+          </div>`;
+      } else if (item.icon && item.color) {
+        // Use custom built-in icon with chosen color
+        iconHTML = `
+          <div class="pw-icon-box" style="
+            width: 40px;
+            height: 40px;
+            background-color: ${item.color};
+            border-radius: 8px;
+            color: white;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 3px 5px rgba(0,0,0,0.1);
+          "><i class="bi ${item.icon}"></i></div>`;
+      } else if (faviconUrl) {
+        // Use website favicon
+        iconHTML = `<img src="${faviconUrl}" class="pw-icon-img" onerror="this.onerror=null; this.src=''; this.classList.add('bi', 'bi-globe');" style="width: 40px; height: 40px; object-fit: contain;">`;
+      } else {
+        // Use colored letter icon for non-websites
+        const firstLetter = displayTitle.charAt(0).toUpperCase();
+        const colorIndex = displayTitle.length % 10; // Get a consistent color based on title length
+        const colors = [
+          '#4285F4', '#EA4335', '#FBBC05', '#34A853', // Google colors
+          '#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c' // More vibrant colors
+        ];
+        const bgColor = colors[colorIndex];
+        
+        iconHTML = `
+          <div class="pw-icon-box" style="
+            width: 40px;
+            height: 40px;
+            background-color: ${bgColor};
+            border-radius: 8px;
+            color: white;
+            font-size: 20px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 3px 5px rgba(0,0,0,0.1);
+          ">${firstLetter}</div>`;
+      }
+      
+      const folderInfo = item.deletedFromFolderName ? `from "${item.deletedFromFolderName}"` : '';
+      
+      card.innerHTML = `
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="me-3">
+              ${iconHTML}
+            </div>
+            <div class="flex-grow-1">
+              <div class="d-flex justify-content-between align-items-start mb-1">
+                <h6 class="mb-0 fw-bold">${displayTitle}</h6>
+                <small class="text-muted">${timeAgo}</small>
+              </div>
+              <p class="text-muted small mb-1">${subtitle} ${folderInfo}</p>
+              <p class="text-muted small mb-0">Deleted on ${formattedDate}</p>
+            </div>
+            <div class="ms-3">
+              <button class="btn btn-sm btn-outline-success me-2 restore-btn" data-id="${item.id}" title="Restore">
+                <i class="bi bi-arrow-counterclockwise"></i>
+              </button>
+              <button class="btn btn-sm btn-outline-danger delete-permanently-btn" data-id="${item.id}" title="Delete Permanently">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
     
     container.appendChild(card);
   });
@@ -2784,7 +2873,7 @@ function renderDeletedItems(pane) {
   footer.innerHTML = `<i class="bi bi-info-circle"></i> Deleted items are stored locally and will be permanently removed after 30 days.`;
   container.appendChild(footer);
   
-  // Add event handlers
+  // Add event handlers for passwords
   document.querySelectorAll('.restore-btn').forEach(btn => {
     btn.onclick = (e) => {
       e.preventDefault();
@@ -2799,13 +2888,100 @@ function renderDeletedItems(pane) {
     };
   });
   
+  // Add event handlers for folders
+  document.querySelectorAll('.restore-folder-btn').forEach(btn => {
+    btn.onclick = (e) => {
+      e.preventDefault();
+      restoreDeletedFolder(btn.getAttribute('data-folder-id'));
+    };
+  });
+  
+  document.querySelectorAll('.delete-folder-permanently-btn').forEach(btn => {
+    btn.onclick = (e) => {
+      e.preventDefault();
+      permanentlyDeleteFolder(btn.getAttribute('data-folder-id'));
+    };
+  });
+  
   document.getElementById('emptyTrashBtn').onclick = (e) => {
     e.preventDefault();
     showConfirmModal("Permanently delete all items in trash?", () => {
       saveDeletedPasswords([]);
+      saveDeletedFolders([]);
       renderDeletedItems(pane);
     });
   };
+}
+
+// Folder restoration and deletion functions
+function restoreDeletedFolder(folderId) {
+  const deletedFolders = getDeletedFolders();
+  const folderToRestore = deletedFolders.find(f => f.id === folderId);
+  
+  if (!folderToRestore) return;
+  
+  showConfirmModal(`Restore folder "${folderToRestore.name}"?`, () => {
+    // Remove folder from deleted folders
+    const updatedDeletedFolders = deletedFolders.filter(f => f.id !== folderId);
+    saveDeletedFolders(updatedDeletedFolders);
+    
+    // Add folder back to active folders
+    const currentFolders = getFolders();
+    const restoredFolder = {
+      id: folderToRestore.id,
+      name: folderToRestore.name,
+      icon: folderToRestore.icon,
+      color: folderToRestore.color,
+      system: false
+    };
+    currentFolders.push(restoredFolder);
+    saveFolders(currentFolders);
+    
+    // Restore any passwords that were deleted with this folder
+    const deletedPasswords = getDeletedPasswords();
+    const passwordsToRestore = deletedPasswords.filter(p => p.deletedFromFolder === folderId);
+    
+    if (passwordsToRestore.length > 0) {
+      // Remove passwords from deleted list
+      const remainingDeletedPasswords = deletedPasswords.filter(p => p.deletedFromFolder !== folderId);
+      saveDeletedPasswords(remainingDeletedPasswords);
+      
+      // Add passwords back to the restored folder
+      const currentFolderPasswords = getPasswords(folderId);
+      passwordsToRestore.forEach(password => {
+        // Remove deletion metadata
+        delete password.deleteDate;
+        delete password.deletedFromFolder;
+        delete password.deletedFromFolderName;
+        currentFolderPasswords.push(password);
+      });
+      savePasswords(folderId, currentFolderPasswords);
+    }
+    
+    showInfoModal(`Folder "${folderToRestore.name}" has been restored with ${passwordsToRestore.length} item${passwordsToRestore.length !== 1 ? 's' : ''}.`);
+    renderAll();
+  });
+}
+
+function permanentlyDeleteFolder(folderId) {
+  const deletedFolders = getDeletedFolders();
+  const folderToDelete = deletedFolders.find(f => f.id === folderId);
+  
+  if (!folderToDelete) return;
+  
+  showConfirmModal(`Permanently delete folder "${folderToDelete.name}"? This cannot be undone.`, () => {
+    // Remove folder from deleted folders
+    const updatedDeletedFolders = deletedFolders.filter(f => f.id !== folderId);
+    saveDeletedFolders(updatedDeletedFolders);
+    
+    // Also permanently delete any passwords that were deleted with this folder
+    const deletedPasswords = getDeletedPasswords();
+    const remainingDeletedPasswords = deletedPasswords.filter(p => p.deletedFromFolder !== folderId);
+    saveDeletedPasswords(remainingDeletedPasswords);
+    
+    showInfoModal(`Folder "${folderToDelete.name}" has been permanently deleted.`);
+    renderDeletedItems(document.getElementById('detailPane'));
+  });
 }
 
 // Helper function to format time ago in a user-friendly way
