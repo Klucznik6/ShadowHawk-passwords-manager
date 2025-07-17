@@ -54,7 +54,7 @@ function generateRecoveryCode() {
 }
 function registerUser(username, password) {
   let users = getUsers();
-  if (users[username]) return "Username already exists";
+  if (users[username]) return t ? t('usernameExists') : "Username already exists";
   const encKey = CryptoJS.lib.WordArray.random(32).toString(CryptoJS.enc.Hex);
   const recoveryCode = generateRecoveryCode();
   const recoveryHash = hashPassword(recoveryCode);
@@ -66,17 +66,17 @@ function registerUser(username, password) {
   localStorage.setItem(getFoldersKey(username), JSON.stringify(defaultFolders()));
   // Show recovery code to user
   showInfoModal(
-    "Your recovery code (write it down and keep it safe):\n\n" +
+    (t ? t('recoveryCodeGenerated') : "Your recovery code (write it down and keep it safe):") + "\n\n" +
     recoveryCode +
-    "\n\nYou will need this to reset your password if you forget it.",
+    (t ? t('recoveryCodeNote') : "\n\nYou will need this to reset your password if you forget it."),
     () => {}
   );
   return null;
 }
 function loginUser(username, password) {
   let users = getUsers();
-  if (!users[username]) return "Username not found";
-  if (users[username].passwordHash !== hashPassword(password)) return "Incorrect password";
+  if (!users[username]) return t ? t('usernameNotFound') : "Username not found";
+  if (users[username].passwordHash !== hashPassword(password)) return t ? t('incorrectPassword') : "Incorrect password";
   localStorage.setItem(getEncKeyKey(username), users[username].encKey);
   localStorage.setItem(LOGGED_IN_KEY, username);
   CURRENT_USER = username;
@@ -130,11 +130,11 @@ function decrypt(cipher) {
 }
 function defaultFolders() {
   return [
-    { id: "all", name: "All Items", icon: "bi-shield-lock-fill", system: true },
-    { id: "favorites", name: "Favorites", icon: "bi-star-fill", system: true },
-    { id: "cards", name: "Payment Cards", icon: "bi-credit-card-fill", system: true }, // New folder for cards
-    { id: "infocenter", name: "Info Center", icon: "bi-graph-up-arrow", system: true },
-    { id: "deleted", name: "Recently Deleted", icon: "bi-trash", system: true }
+    { id: "all", name: t ? t('allItems') : "All Items", icon: "bi-shield-lock-fill", system: true },
+    { id: "favorites", name: t ? t('favorites') : "Favorites", icon: "bi-star-fill", system: true },
+    { id: "cards", name: t ? t('paymentCards') : "Payment Cards", icon: "bi-credit-card-fill", system: true },
+    { id: "infocenter", name: t ? t('infoCenter') : "Info Center", icon: "bi-graph-up-arrow", system: true },
+    { id: "deleted", name: t ? t('recentlyDeleted') : "Recently Deleted", icon: "bi-trash", system: true }
   ];
 }
 function getFolders() {
@@ -268,9 +268,17 @@ function renderFolders() {
     
     // Create icon with custom color if available
     const iconColor = f.color ? `style="color: ${f.color};"` : '';
-    li.innerHTML = `<i class="bi ${f.icon}" ${iconColor}></i> <span>${f.name}</span>`;
     
-    if (!f.system) li.innerHTML += `<i class="bi bi-trash folder-delete ms-2" title="Delete" data-folder="${f.id}"></i>`;
+    // Use localized name for system folders
+    let displayName = f.name;
+    if (f.system && langManager) {
+      displayName = langManager.getSystemFolderName(f.id);
+    }
+    
+    li.innerHTML = `<i class="bi ${f.icon}" ${iconColor}></i> <span>${displayName}</span>`;
+    li.setAttribute('data-folder-id', f.id);
+    
+    if (!f.system) li.innerHTML += `<i class="bi bi-trash folder-delete ms-2" title="${t ? t('delete') : 'Delete'}" data-folder="${f.id}"></i>`;
     li.onclick = () => { selectedFolder = f.id; selectedPasswordId = null; addEditMode = null; renderAll(); };
     if (!f.system) {
       li.querySelector('.folder-delete').onclick = (e) => {
@@ -362,7 +370,7 @@ function renderPasswordsList() {
   list.innerHTML = "";
   
   if (passwords.length === 0) {
-    list.innerHTML = `<li class="text-muted text-center py-4">No passwords.</li>`;
+    list.innerHTML = `<li class="text-muted text-center py-4">${t ? t('noPasswords') : 'No passwords.'}</li>`;
     return;
   }
   
@@ -1323,14 +1331,23 @@ function renderAll() {
   // Customize the Add button based on current folder
   const addButton = document.getElementById('addPasswordBtn');
   if (selectedFolder === "cards") {
-    addButton.innerHTML = '<i class="bi bi-plus-lg"></i> New Card';
+    addButton.innerHTML = `<i class="bi bi-plus-lg"></i> ${t ? t('newCard') : 'New Card'}`;
   } else {
-    addButton.innerHTML = '<i class="bi bi-plus-lg"></i> New Item';
+    addButton.innerHTML = `<i class="bi bi-plus-lg"></i> ${t ? t('newItem') : 'New Item'}`;
   }
   
   // Always update folder name and user info
-  document.getElementById('currentFolderName').textContent =
-    getFolders().find(f => f.id === selectedFolder)?.name || "All Items";
+  const currentFolder = getFolders().find(f => f.id === selectedFolder);
+  let folderName = currentFolder?.name || (t ? t('allItems') : "All Items");
+  
+  // Use localized name for system folders
+  if (currentFolder?.system && langManager) {
+    folderName = langManager.getSystemFolderName(currentFolder.id);
+  }
+  
+  const currentFolderElement = document.getElementById('currentFolderName');
+  currentFolderElement.textContent = folderName;
+  currentFolderElement.setAttribute('data-folder-id', selectedFolder);
 }
 
 // --- Event handlers ---
@@ -1580,10 +1597,10 @@ document.getElementById('importCodeInput').onkeypress = function(e) {
 
 // --- Authentication overlay logic ---
 function showAuth(isLogin) {
-  document.getElementById('authTitle').textContent = isLogin ? "Login" : "Register";
-  document.getElementById('authBtn').textContent = isLogin ? "Login" : "Register";
-  document.getElementById('toggleText').textContent = isLogin ? "Don't have an account?" : "Already have an account?";
-  document.getElementById('toggleAuth').textContent = isLogin ? "Register" : "Login";
+  document.getElementById('authTitle').textContent = isLogin ? (t ? t('login') : "Login") : (t ? t('register') : "Register");
+  document.getElementById('authBtn').textContent = isLogin ? (t ? t('loginBtn') : "Login") : (t ? t('registerBtn') : "Register");
+  document.getElementById('toggleText').textContent = isLogin ? (t ? t('dontHaveAccount') : "Don't have an account?") : (t ? t('haveAccount') : "Already have an account?");
+  document.getElementById('toggleAuth').textContent = isLogin ? (t ? t('register') : "Register") : (t ? t('login') : "Login");
   document.getElementById('authError').classList.add('d-none');
   document.getElementById('authForm').reset();
   setTimeout(()=>document.getElementById('authUsername').focus(),100);
@@ -1658,6 +1675,48 @@ function updateVaultsShieldIcon(theme) {
     console.log('Shield icon src updated to:', vaultsShieldIcon.src);
   } else {
     console.log('vaultsShieldIcon element not found');
+  }
+}
+
+// --- Language System Functions ---
+function updateLanguageDropdown() {
+  const currentLang = langManager.currentLanguage;
+  const languageOptions = {
+    'en': '🇺🇸 English',
+    'pl': '🇵🇱 Polski',
+    'es': '🇪🇸 Español',
+    'de': '🇩🇪 Deutsch',
+    'fr': '🇫🇷 Français',
+    'pt': '🇵🇹 Português'
+  };
+  
+  // Update the dropdown display
+  const currentDisplay = document.getElementById('currentLanguageDisplay');
+  if (currentDisplay) {
+    currentDisplay.textContent = languageOptions[currentLang] || languageOptions['en'];
+  }
+  
+  // Update active state in dropdown items
+  const dropdownItems = document.querySelectorAll('#languageDropdown + .dropdown-menu .dropdown-item');
+  dropdownItems.forEach(item => {
+    const langCode = item.getAttribute('data-lang-code');
+    if (langCode === currentLang) {
+      item.classList.add('active');
+    } else {
+      item.classList.remove('active');
+    }
+  });
+}
+
+// Keep backward compatibility
+function updateLanguageButtons() {
+  updateLanguageDropdown();
+}
+
+function updateCurrentView() {
+  // Re-render everything with new language
+  if (CURRENT_USER) {
+    renderAll();
   }
 }
 
@@ -1828,6 +1887,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('settingsBtn').onclick = () => {
     document.getElementById('settingsModal').classList.remove('d-none');
+    updateLanguageDropdown();
   };
   document.getElementById('settingsCloseBtn').onclick = () => {
     document.getElementById('settingsModal').classList.add('d-none');
@@ -1840,6 +1900,38 @@ document.addEventListener('DOMContentLoaded', () => {
     setTheme('dark');
   };
   
+  // Language dropdown
+  document.getElementById('langEn').onclick = (e) => {
+    e.preventDefault();
+    langManager.setLanguage('en');
+    updateLanguageDropdown();
+  };
+  document.getElementById('langPl').onclick = (e) => {
+    e.preventDefault();
+    langManager.setLanguage('pl');
+    updateLanguageDropdown();
+  };
+  document.getElementById('langEs').onclick = (e) => {
+    e.preventDefault();
+    langManager.setLanguage('es');
+    updateLanguageDropdown();
+  };
+  document.getElementById('langDe').onclick = (e) => {
+    e.preventDefault();
+    langManager.setLanguage('de');
+    updateLanguageDropdown();
+  };
+  document.getElementById('langFr').onclick = (e) => {
+    e.preventDefault();
+    langManager.setLanguage('fr');
+    updateLanguageDropdown();
+  };
+  document.getElementById('langPt').onclick = (e) => {
+    e.preventDefault();
+    langManager.setLanguage('pt');
+    updateLanguageDropdown();
+  };
+  
   // Password generation settings
   document.getElementById('passwordLength').oninput = (e) => {
     document.getElementById('passwordLengthValue').textContent = e.target.value;
@@ -1848,6 +1940,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // --- Startup ---
 window.onload = function() {
+  // Initialize language manager
+  if (langManager) {
+    langManager.loadLanguage();
+    // Initialize dropdown after a small delay to ensure DOM is ready
+    setTimeout(() => {
+      if (typeof updateLanguageDropdown === 'function') {
+        updateLanguageDropdown();
+      }
+    }, 100);
+  }
+  
   let logged = localStorage.getItem(LOGGED_IN_KEY);
   if (logged && getUsers()[logged]) {
     CURRENT_USER = logged;

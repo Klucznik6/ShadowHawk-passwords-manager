@@ -875,3 +875,94 @@ html, body, #app {
   font-size: 0.875em;
   color: #dc3545;
 }
+
+/* Language Dropdown Styles */
+#languageDropdown {
+  text-align: left;
+  position: relative;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+  padding: 8px 12px;
+  height: auto;
+  min-height: 38px;
+}
+
+#languageDropdown:hover {
+  border-color: var(--accent-primary);
+  background-color: var(--bg-card);
+}
+
+#languageDropdown:focus {
+  box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25);
+  border-color: var(--accent-primary);
+  background-color: var(--bg-card);
+}
+
+#languageDropdown.dropdown-toggle::after {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-left: auto;
+}
+
+#currentLanguageDisplay {
+  display: block;
+  width: calc(100% - 20px);
+  text-align: left;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.dropdown-menu .dropdown-item {
+  padding: 8px 16px;
+  transition: all 0.2s ease;
+}
+
+.dropdown-menu .dropdown-item:hover {
+  background-color: var(--accent-primary);
+  color: white;
+}
+
+.dropdown-menu .dropdown-item.active {
+  background-color: var(--accent-primary);
+  color: white;
+  font-weight: 500;
+}
+
+/* Dark theme adjustments for dropdown */
+[data-bs-theme="dark"] #languageDropdown {
+  background-color: #374151;
+  border-color: #4b5563;
+  color: #f3f4f6;
+}
+
+[data-bs-theme="dark"] #languageDropdown:hover {
+  border-color: var(--accent-primary);
+  background-color: #374151;
+}
+
+[data-bs-theme="dark"] #languageDropdown:focus {
+  background-color: #374151;
+  border-color: var(--accent-primary);
+}
+
+[data-bs-theme="dark"] #currentLanguageDisplay {
+  color: #f3f4f6;
+}
+
+[data-bs-theme="dark"] .dropdown-menu {
+  background-color: #374151;
+  border-color: #4b5563;
+}
+
+[data-bs-theme="dark"] .dropdown-menu .dropdown-item {
+  color: #f3f4f6;
+}
+
+[data-bs-theme="dark"] .dropdown-menu .dropdown-item:hover {
+  background-color: var(--accent-primary);
+  color: white;
+}
