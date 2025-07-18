@@ -120,22 +120,22 @@
 <summary>Click to view screenshots</summary>
 
 ### Main Dashboard
-![Main Dashboard](page/media/darkMode/maindashboardDarkMode.png)
+![Main Dashboard](docs/media/darkMode/maindashboardDarkMode.png)
 
 ### Password Generator
-![Password Generator](page/media/darkMode/passwordGenerationDarkMode.png)
+![Password Generator](docs/media/darkMode/passwordGenerationDarkMode.png)
 
 ### Payment Cards
-![Payment Cards](page/media/darkMode/creditCardViewDarkMode.png)
+![Payment Cards](docs/media/darkMode/creditCardViewDarkMode.png)
 
 ### Smart Folders
-![Smart Folders](page/media/darkMode/foldersDarkMode.png)
+![Smart Folders](docs/media/darkMode/foldersDarkMode.png)
 
 ### Recently Deleted
-![Recently Deleted](page/media/darkMode/recentlyDeletedDarkMode.png)
+![Recently Deleted](docs/media/darkMode/recentlyDeletedDarkMode.png)
 
 ### Light Theme
-![Light Theme](page/media/lightMode/mainDashboardLightMode.png)
+![Light Theme](docs/media/lightMode/mainDashboardLightMode.png)
 
 </details>
 
