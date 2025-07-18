@@ -3,11 +3,91 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
-    <title>ShadowHawk Password Manager - Secure. Simple. Powerful.</title>
     
-    <!-- Favicon -->
+    <!-- Primary Meta Tags -->
+    <title>ShadowHawk Password Manager - Free Secure Password Manager | Military-Grade Encryption</title>
+    <meta name="title" content="ShadowHawk Password Manager - Free Secure Password Manager | Military-Grade Encryption">
+    <meta name="description" content="Free, open-source password manager with AES-256 encryption, offline storage, and multi-language support. Secure your digital life with military-grade security. Download now for Windows, macOS, and Linux.">
+    <meta name="keywords" content="password manager, free password manager, secure password storage, AES encryption, offline password manager, digital security, password generator, open source security, privacy protection, credential manager">
+    <meta name="author" content="Wiktor Kulikiewicz">
+    <meta name="robots" content="index, follow">
+    <meta name="language" content="English">
+    <meta name="revisit-after" content="7 days">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://shadowhawk.cloud/">
+    <meta property="og:title" content="ShadowHawk Password Manager - Free Secure Password Manager">
+    <meta property="og:description" content="Free, open-source password manager with AES-256 encryption, offline storage, and multi-language support. Secure your digital life with military-grade security.">
+    <meta property="og:image" content="https://shadowhawk.cloud/media/darkMode/maindashboardDarkMode.png">
+    <meta property="og:site_name" content="ShadowHawk Password Manager">
+    <meta property="og:locale" content="en_US">
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://shadowhawk.cloud/">
+    <meta property="twitter:title" content="ShadowHawk Password Manager - Free Secure Password Manager">
+    <meta property="twitter:description" content="Free, open-source password manager with AES-256 encryption, offline storage, and multi-language support. Secure your digital life with military-grade security.">
+    <meta property="twitter:image" content="https://shadowhawk.cloud/media/darkMode/maindashboardDarkMode.png">
+    
+    <!-- Additional SEO Meta Tags -->
+    <meta name="application-name" content="ShadowHawk Password Manager">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ShadowHawk">
+    <meta name="theme-color" content="#0d6efd">
+    <meta name="msapplication-TileColor" content="#0d6efd">
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://shadowhawk.cloud/">
+    
+    <!-- Alternate Languages -->
+    <link rel="alternate" hreflang="en" href="https://shadowhawk.cloud/">
+    <link rel="alternate" hreflang="pl" href="https://shadowhawk.cloud/">
+    <link rel="alternate" hreflang="es" href="https://shadowhawk.cloud/">
+    <link rel="alternate" hreflang="de" href="https://shadowhawk.cloud/">
+    <link rel="alternate" hreflang="fr" href="https://shadowhawk.cloud/">
+    <link rel="alternate" hreflang="pt" href="https://shadowhawk.cloud/">
+    <link rel="alternate" hreflang="x-default" href="https://shadowhawk.cloud/">
+    
+    <!-- Favicon and Icons -->
     <link rel="icon" type="image/x-icon" href="media/icon.ico">
     <link rel="shortcut icon" type="image/x-icon" href="media/icon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="media/icon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="media/icon.ico">
+    <link rel="icon" type="image/png" sizes="16x16" href="media/icon.ico">
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "ShadowHawk Password Manager",
+      "alternateName": "HawkPass",
+      "description": "A secure, privacy-focused password manager with military-grade encryption, offline storage, and multi-language support. Free and open source password management solution.",
+      "url": "https://shadowhawk.cloud/",
+      "downloadUrl": "https://github.com/Klucznik6/ShadowHawk-passwords-manager/releases",
+      "applicationCategory": "SecurityApplication",
+      "operatingSystem": ["Windows", "macOS", "Linux"],
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD",
+        "availability": "https://schema.org/InStock"
+      },
+      "author": {
+        "@type": "Person",
+        "name": "Wiktor Kulikiewicz",
+        "url": "https://github.com/Klucznik6"
+      },
+      "datePublished": "2025-07-18",
+      "version": "1.0.0",
+      "features": ["Password Management", "AES-256 Encryption", "Local Storage", "Password Generator", "Multi-Language Support"],
+      "screenshot": "https://shadowhawk.cloud/media/darkMode/maindashboardDarkMode.png"
+    }
+    </script>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -64,25 +144,25 @@
     </nav>
 
     <!-- Hero Section -->
-    <section class="hero-section">
+    <section class="hero-section" itemscope itemtype="https://schema.org/SoftwareApplication">
         <div class="container">
             <div class="row align-items-center min-vh-100 g-4">
                 <div class="col-12 col-lg-6 order-1 order-lg-1">
                     <div class="hero-content">
-                        <h1 class="display-3 fw-bold mb-4">
+                        <h1 class="display-3 fw-bold mb-4" itemprop="name">
                             Your Digital <span class="text-primary">Fortress</span>
                         </h1>
-                        <p class="lead mb-5">
+                        <p class="lead mb-5" itemprop="description">
                             ShadowHawk Password Manager keeps your digital life secure with military-grade encryption, 
                             intuitive design, and powerful features that make password management effortless.
                         </p>
                         
                         <div class="d-flex flex-column flex-sm-row flex-wrap gap-3 mb-5">
-                            <a href="#download" class="btn btn-primary btn-lg px-4 py-3">
-                                <i class="bi bi-download me-2"></i>Download Free
+                            <a href="#download" class="btn btn-primary btn-lg px-4 py-3" itemprop="downloadUrl">
+                                <i class="bi bi-download me-2"></i>Download Free Password Manager
                             </a>
                             <a href="#features" class="btn btn-outline-light btn-lg px-4 py-3">
-                                <i class="bi bi-play-circle me-2"></i>Learn More
+                                <i class="bi bi-play-circle me-2"></i>Learn More About Security Features
                             </a>
                         </div>
                         
@@ -170,71 +250,71 @@
     </section>
 
     <!-- Features Section -->
-    <section id="features" class="py-5">
+    <section id="features" class="py-5" itemscope itemtype="https://schema.org/ItemList">
         <div class="container">
             <div class="text-center mb-5">
-                <h2 class="display-5 fw-bold mb-3">Powerful Features</h2>
-                <p class="lead text-muted">Everything you need to manage your digital security</p>
+                <h2 class="display-5 fw-bold mb-3" itemprop="name">Powerful Password Manager Features</h2>
+                <p class="lead text-muted" itemprop="description">Everything you need to manage your digital security and protect your passwords</p>
             </div>
             
             <div class="row g-4">
-                <div class="col-md-6 col-lg-4">
+                <div class="col-md-6 col-lg-4" itemprop="itemListElement" itemscope itemtype="https://schema.org/SoftwareFeature">
                     <div class="feature-card h-100">
                         <div class="feature-icon">
                             <i class="bi bi-shield-lock-fill"></i>
                         </div>
-                        <h4>Military-Grade Security</h4>
-                        <p>256-bit AES encryption ensures your passwords are protected with the same standards used by governments and military organizations worldwide.</p>
+                        <h4 itemprop="name">Military-Grade Security</h4>
+                        <p itemprop="description">256-bit AES encryption ensures your passwords are protected with the same standards used by governments and military organizations worldwide.</p>
                     </div>
                 </div>
                 
-                <div class="col-md-6 col-lg-4">
+                <div class="col-md-6 col-lg-4" itemprop="itemListElement" itemscope itemtype="https://schema.org/SoftwareFeature">
                     <div class="feature-card h-100">
                         <div class="feature-icon">
                             <i class="bi bi-folder-fill"></i>
                         </div>
-                        <h4>Smart Organization</h4>
-                        <p>Create custom folders with personalized colors and icons. Organize passwords by category, project, or any system that works for you.</p>
+                        <h4 itemprop="name">Smart Password Organization</h4>
+                        <p itemprop="description">Create custom folders with personalized colors and icons. Organize passwords by category, project, or any system that works for you.</p>
                     </div>
                 </div>
                 
-                <div class="col-md-6 col-lg-4">
+                <div class="col-md-6 col-lg-4" itemprop="itemListElement" itemscope itemtype="https://schema.org/SoftwareFeature">
                     <div class="feature-card h-100">
                         <div class="feature-icon">
                             <i class="bi bi-credit-card-fill"></i>
                         </div>
-                        <h4>Payment Card Manager</h4>
-                        <p>Securely store credit cards, debit cards, and other payment information with beautiful card previews and secure CVV storage.</p>
+                        <h4 itemprop="name">Secure Payment Card Manager</h4>
+                        <p itemprop="description">Securely store credit cards, debit cards, and other payment information with beautiful card previews and secure CVV storage.</p>
                     </div>
                 </div>
                 
-                <div class="col-md-6 col-lg-4">
+                <div class="col-md-6 col-lg-4" itemprop="itemListElement" itemscope itemtype="https://schema.org/SoftwareFeature">
                     <div class="feature-card h-100">
                         <div class="feature-icon">
                             <i class="bi bi-arrow-clockwise"></i>
                         </div>
-                        <h4>Password Generator</h4>
-                        <p>Generate strong, unique passwords with customizable length, character sets, and complexity rules. Never use weak passwords again.</p>
+                        <h4 itemprop="name">Advanced Password Generator</h4>
+                        <p itemprop="description">Generate strong, unique passwords with customizable length, character sets, and complexity rules. Never use weak passwords again.</p>
                     </div>
                 </div>
                 
-                <div class="col-md-6 col-lg-4">
+                <div class="col-md-6 col-lg-4" itemprop="itemListElement" itemscope itemtype="https://schema.org/SoftwareFeature">
                     <div class="feature-card h-100">
                         <div class="feature-icon">
                             <i class="bi bi-trash3-fill"></i>
                         </div>
-                        <h4>Safe Recovery</h4>
-                        <p>Accidentally deleted a password? Our Recently Deleted feature keeps your items safe for 30 days with one-click recovery.</p>
+                        <h4 itemprop="name">Safe Password Recovery</h4>
+                        <p itemprop="description">Accidentally deleted a password? Our Recently Deleted feature keeps your items safe for 30 days with one-click recovery.</p>
                     </div>
                 </div>
                 
-                <div class="col-md-6 col-lg-4">
+                <div class="col-md-6 col-lg-4" itemprop="itemListElement" itemscope itemtype="https://schema.org/SoftwareFeature">
                     <div class="feature-card h-100">
                         <div class="feature-icon">
                             <i class="bi bi-palette-fill"></i>
                         </div>
-                        <h4>Beautiful Interface</h4>
-                        <p>Enjoy a modern, intuitive interface with dark and light themes, smooth animations, and multi-language support. Available in 6 languages with automatic detection for a truly personalized experience.</p>
+                        <h4 itemprop="name">Beautiful User Interface</h4>
+                        <p itemprop="description">Enjoy a modern, intuitive interface with dark and light themes, smooth animations, and multi-language support. Available in 6 languages with automatic detection for a truly personalized experience.</p>
                     </div>
                 </div>
             </div>
@@ -274,14 +354,14 @@
     </section>
 
     <!-- Security Section -->
-    <section id="security" class="py-5 bg-body-tertiary">
+    <section id="security" class="py-5 bg-body-tertiary" itemscope itemtype="https://schema.org/Thing">
         <div class="container">
             <div class="row align-items-center">
                 <div class="col-lg-6">
-                    <h2 class="display-5 fw-bold mb-4">Your Privacy, Our Priority</h2>
-                    <p class="lead mb-4">
+                    <h2 class="display-5 fw-bold mb-4" itemprop="name">Your Privacy, Our Priority - Zero-Knowledge Password Security</h2>
+                    <p class="lead mb-4" itemprop="description">
                         ShadowHawk is built with privacy-first principles. Your data never leaves your device, 
-                        and we use industry-standard encryption to keep your information secure.
+                        and we use industry-standard encryption to keep your password information secure.
                     </p>
                     
                     <div class="security-features">
@@ -332,8 +412,8 @@
     <section id="screenshots" class="py-5">
         <div class="container">
             <div class="text-center mb-5">
-                <h2 class="display-5 fw-bold mb-3">See It In Action</h2>
-                <p class="lead text-muted">Beautiful design meets powerful functionality</p>
+                <h2 class="display-5 fw-bold mb-3">Password Manager Screenshots - See It In Action</h2>
+                <p class="lead text-muted">Beautiful design meets powerful password security functionality</p>
             </div>
             
             <!-- Main Screenshot Gallery -->
@@ -341,10 +421,11 @@
                 <div class="col-lg-8">
                     <div class="main-screenshot">
                         <img src="media/darkMode/maindashboardDarkMode.png" 
-                             alt="ShadowHawk Main Dashboard" 
+                             alt="ShadowHawk Password Manager Main Dashboard - Secure Password Storage Interface with Folders and Search" 
                              class="img-fluid rounded-3 shadow-lg screenshot-img theme-screenshot"
                              data-dark="media/darkMode/maindashboardDarkMode.png"
-                             data-light="media/lightMode/mainDashboardLightMode.png">
+                             data-light="media/lightMode/mainDashboardLightMode.png"
+                             title="Password Manager Dashboard Screenshot">
                         <div class="screenshot-overlay">
                             <h5>Main Dashboard</h5>
                             <p>Clean, organized interface with custom folders and smart categorization</p>
@@ -357,10 +438,11 @@
                         <div class="col-12">
                             <div class="secondary-screenshot">
                                 <img src="media/darkMode/passwordGenerationDarkMode.png" 
-                                     alt="Password Generator" 
+                                     alt="Password Generator Tool - Create Strong Secure Passwords with Customizable Options" 
                                      class="img-fluid rounded-3 shadow screenshot-img theme-screenshot"
                                      data-dark="media/darkMode/passwordGenerationDarkMode.png"
-                                     data-light="media/lightMode/passwordGenerationLightMode.png">
+                                     data-light="media/lightMode/passwordGenerationLightMode.png"
+                                     title="Password Generator Screenshot">
                                 <div class="screenshot-overlay">
                                     <h6>Password Generator</h6>
                                     <p class="small">Generate strong, unique passwords</p>
@@ -461,10 +543,10 @@
     </section>
 
     <!-- Download Section -->
-    <section id="download" class="py-5 bg-primary text-white">
+    <section id="download" class="py-5 bg-primary text-white" itemscope itemtype="https://schema.org/SoftwareApplication">
         <div class="container text-center">
-            <h2 class="display-5 fw-bold mb-3">Ready to Get Started?</h2>
-            <p class="lead mb-5">Download ShadowHawk Password Manager and take control of your digital security today.</p>
+            <h2 class="display-5 fw-bold mb-3">Download Free Password Manager - Ready to Get Started?</h2>
+            <p class="lead mb-5" itemprop="description">Download ShadowHawk Password Manager and take control of your digital security today. Free, secure, and open source.</p>
             
             <div class="row justify-content-center">
                 <div class="col-lg-8">

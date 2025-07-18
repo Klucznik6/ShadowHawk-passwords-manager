@@ -1,0 +1,78 @@
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "ShadowHawk Password Manager",
+  "alternateName": "HawkPass",
+  "description": "A secure, privacy-focused password manager with military-grade encryption, offline storage, and multi-language support. Free and open source password management solution.",
+  "url": "https://shadowhawk.cloud/",
+  "downloadUrl": "https://github.com/Klucznik6/ShadowHawk-passwords-manager/releases",
+  "applicationCategory": "SecurityApplication",
+  "operatingSystem": [
+    "Windows",
+    "macOS", 
+    "Linux"
+  ],
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD",
+    "availability": "https://schema.org/InStock"
+  },
+  "author": {
+    "@type": "Person",
+    "name": "Wiktor Kulikiewicz",
+    "url": "https://github.com/Klucznik6"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "ShadowHawk",
+    "url": "https://shadowhawk.cloud/"
+  },
+  "datePublished": "2025-07-18",
+  "dateModified": "2025-07-18",
+  "version": "1.0.0",
+  "license": "https://opensource.org/licenses/MIT",
+  "programmingLanguage": "JavaScript",
+  "runtimePlatform": "Electron",
+  "features": [
+    "Password Management",
+    "AES-256 Encryption", 
+    "Local Storage",
+    "Password Generator",
+    "Multi-Language Support",
+    "Payment Card Storage",
+    "Folder Organization",
+    "Data Export/Import",
+    "Dark/Light Theme",
+    "Zero-Knowledge Architecture"
+  ],
+  "screenshot": [
+    "https://shadowhawk.cloud/media/darkMode/maindashboardDarkMode.png",
+    "https://shadowhawk.cloud/media/darkMode/passwordGenerationDarkMode.png",
+    "https://shadowhawk.cloud/media/darkMode/creditCardViewDarkMode.png"
+  ],
+  "aggregateRating": {
+    "@type": "AggregateRating",
+    "ratingValue": "5.0",
+    "ratingCount": "1"
+  },
+  "softwareRequirements": "Windows 10+, macOS 10.15+, or Linux",
+  "memoryRequirements": "512MB RAM",
+  "storageRequirements": "100MB",
+  "keywords": [
+    "password manager",
+    "password security",
+    "encryption",
+    "privacy",
+    "offline password manager",
+    "local password storage",
+    "free password manager",
+    "open source security",
+    "AES encryption",
+    "password generator",
+    "secure vault",
+    "digital security",
+    "credential manager",
+    "password organizer"
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "name": "ShadowHawk Password Manager",
+  "short_name": "ShadowHawk",
+  "description": "Free, secure password manager with military-grade encryption and offline storage",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d6efd",
+  "theme_color": "#0d6efd",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "media/icon.ico",
+      "sizes": "16x16 32x32 48x48",
+      "type": "image/x-icon",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["security", "utilities", "productivity"],
+  "screenshots": [
+    {
+      "src": "https://shadowhawk.cloud/media/darkMode/maindashboardDarkMode.png",
+      "type": "image/png",
+      "sizes": "1920x1080",
+      "label": "Main Dashboard - Password Management Interface"
+    },
+    {
+      "src": "https://shadowhawk.cloud/media/darkMode/passwordGenerationDarkMode.png", 
+      "type": "image/png",
+      "sizes": "800x600",
+      "label": "Password Generator - Create Strong Passwords"
+    }
+  ]
+}
