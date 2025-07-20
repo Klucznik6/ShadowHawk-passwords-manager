@@ -16,9 +16,14 @@
     "dev": "set NODE_ENV=development && electron .",
     "build": "electron-builder",
     "build:win": "electron-builder --win --x64",
+    "build:win32": "electron-builder --win --ia32",
+    "build:win-portable": "electron-builder --win portable --x64",
+    "build:packager": "electron-packager . \"ShadowHawk Password Manager\" --platform=win32 --arch=x64 --out=dist --icon=assets/icon.ico --overwrite",
     "build:mac": "electron-builder --mac --x64",
     "build:linux": "electron-builder --linux --x64",
+    "build:all": "electron-builder --win --mac --linux",
     "pack": "electron-builder --dir",
+    "pack:nosign": "set CSC_IDENTITY_AUTO_DISCOVERY=false && electron-builder --dir",
     "postinstall": "electron-builder install-app-deps",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -53,13 +58,26 @@
       {
         "from": "assets/",
         "to": "assets/",
-        "filter": ["icon.*"]
+        "filter": [
+          "icon.*"
+        ]
       }
     ],
+    "forceCodeSigning": false,
+    "buildDependenciesFromSource": false,
     "win": {
-      "target": "nsis",
+      "target": [
+        {
+          "target": "dir",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
       "icon": "assets/icon.ico",
-      "requestedExecutionLevel": "asInvoker"
+      "requestedExecutionLevel": "asInvoker",
+      "verifyUpdateCodeSignature": false,
+      "publisherName": "ShadowHawk"
     },
     "mac": {
       "target": "dmg",
@@ -74,15 +92,23 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
+      "allowElevation": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
+      "shortcutName": "ShadowHawk Password Manager",
       "installerIcon": "assets/icon.ico",
-      "uninstallerIcon": "assets/icon.ico"
+      "uninstallerIcon": "assets/icon.ico",
+      "installerHeaderIcon": "assets/icon.ico",
+      "deleteAppDataOnUninstall": false,
+      "runAfterFinish": true,
+      "menuCategory": "Security",
+      "artifactName": "${productName} Setup ${version}.${ext}"
     }
   },
   "devDependencies": {
     "electron": "^36.6.0",
-    "electron-builder": "^25.1.8"
+    "electron-builder": "^25.1.8",
+    "electron-packager": "^17.1.2"
   },
   "dependencies": {
     "bootstrap": "^5.3.7",

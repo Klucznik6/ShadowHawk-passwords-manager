@@ -1,0 +1,112 @@
+End-User License Agreement (EULA)
+ShadowHawk Password Manager
+
+IMPORTANT: PLEASE READ THIS AGREEMENT CAREFULLY BEFORE INSTALLING OR USING THE SOFTWARE.
+
+This End-User License Agreement ("EULA") is a legal agreement between you ("User" or "You") and Wiktor Kulikiewicz ("Developer", "Author", or "I") for the ShadowHawk Password Manager software application ("Software").
+
+BY INSTALLING, COPYING, OR OTHERWISE USING THE SOFTWARE, YOU AGREE TO BE BOUND BY THE TERMS OF THIS EULA. IF YOU DO NOT AGREE TO THE TERMS OF THIS EULA, DO NOT INSTALL OR USE THE SOFTWARE.
+
+1. GRANT OF LICENSE
+
+Subject to the terms and conditions of this EULA, Developer grants You a limited, non-exclusive, non-transferable license to:
+a) Install and use the Software on your personal computers
+b) Make backup copies of the Software for archival purposes
+c) Use the Software for personal password management
+
+2. RESTRICTIONS
+
+You may NOT:
+a) Reverse engineer, decompile, or disassemble the Software
+b) Rent, lease, lend, sell, redistribute or sublicense the Software
+c) Remove or alter any copyright notices or other proprietary notices
+d) Use the Software for any unlawful purpose
+e) Use the "ShadowHawk" name or trademarks without written permission
+
+3. DATA AND PRIVACY
+
+a) LOCAL STORAGE: All your password data is stored locally on your device
+b) NO DATA COLLECTION: We do not collect, store, or transmit your personal data
+c) ENCRYPTION: Your data is encrypted using industry-standard algorithms
+d) YOUR RESPONSIBILITY: You are responsible for backing up your data
+
+4. SECURITY DISCLAIMER
+
+a) BEST EFFORT: The Software uses strong encryption and security practices
+b) NO GUARANTEE: No software can guarantee absolute security
+c) USER RESPONSIBILITY: You must use strong master passwords and follow security best practices
+d) REGULAR UPDATES: You should keep the Software updated for security patches
+
+5. WARRANTY DISCLAIMER
+
+THE SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND. DEVELOPER DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO:
+- MERCHANTABILITY
+- FITNESS FOR A PARTICULAR PURPOSE  
+- NON-INFRINGEMENT
+- SECURITY OR FREEDOM FROM ERRORS
+
+6. LIMITATION OF LIABILITY
+
+IN NO EVENT SHALL DEVELOPER BE LIABLE FOR ANY DAMAGES INCLUDING:
+- LOSS OF DATA OR PASSWORDS
+- BUSINESS INTERRUPTION
+- LOST PROFITS
+- SECURITY BREACHES
+- INDIRECT, INCIDENTAL, OR CONSEQUENTIAL DAMAGES
+
+DEVELOPER'S TOTAL LIABILITY SHALL NOT EXCEED THE AMOUNT PAID FOR THE SOFTWARE.
+
+7. INDEMNIFICATION
+
+You agree to indemnify and hold Developer harmless from any claims, damages, or expenses arising from:
+- Your use or misuse of the Software
+- Your violation of this EULA
+- Your violation of any applicable laws
+
+8. TERMINATION
+
+This license is effective until terminated. It will terminate automatically if You fail to comply with any term of this EULA. Upon termination, You must destroy all copies of the Software.
+
+9. UPDATES AND MODIFICATIONS
+
+a) UPDATES: Developer may provide updates to improve security or functionality
+b) EULA CHANGES: This EULA may be updated for new versions
+c) NOTIFICATION: Significant changes will be communicated through the Software or website
+
+10. OPEN SOURCE COMPONENTS
+
+The Software incorporates open source components licensed under their respective terms:
+- Electron (MIT License)
+- Bootstrap (MIT License)  
+- CryptoJS (MIT License)
+- Other components as listed in the documentation
+
+11. EXPORT RESTRICTIONS
+
+You acknowledge that the Software may be subject to export restrictions. You agree to comply with all applicable export laws and regulations.
+
+12. GOVERNING LAW
+
+This EULA shall be governed by and construed in accordance with applicable local laws, without regard to conflict of law principles.
+
+13. ENTIRE AGREEMENT
+
+This EULA constitutes the entire agreement between You and Developer regarding the Software and supersedes all prior agreements and understandings.
+
+14. SEVERABILITY
+
+If any provision of this EULA is held to be invalid or unenforceable, the remaining provisions shall remain in full force and effect.
+
+15. CONTACT INFORMATION
+
+For questions about this EULA, contact:
+- Website: https://shadowhawk.cloud
+- Repository: https://github.com/Klucznik6/ShadowHawk-passwords-manager
+
+BY CLICKING "I AGREE" OR BY INSTALLING THE SOFTWARE, YOU ACKNOWLEDGE THAT YOU HAVE READ THIS EULA, UNDERSTAND IT, AND AGREE TO BE BOUND BY ITS TERMS.
+
+Copyright © 2025 Wiktor Kulikiewicz
+All rights reserved.
+
+Version: 1.0
+Effective Date: January 20, 2025

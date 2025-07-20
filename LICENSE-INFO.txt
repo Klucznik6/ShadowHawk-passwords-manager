@@ -1,0 +1,165 @@
+ShadowHawk Password Manager - Licensing Information
+
+===============================================================================
+
+OVERVIEW
+
+ShadowHawk Password Manager is licensed under a modified MIT License with 
+additional trademark and security provisions specific to password management 
+software. All rights are owned by Wiktor Kulikiewicz as an individual developer.
+
+LICENSE TYPES
+
+1. Open Source License (Current)
+   - File: LICENSE
+   - Type: Modified MIT License with ShadowHawk-specific terms
+   - Use: Personal, educational, and non-commercial projects
+   - Distribution: Free and open source
+
+2. Commercial License (Available)
+   For commercial use, enterprise deployment, or white-label solutions:
+   - Contact: Available upon request
+   - Benefits: 
+     * Commercial use rights
+     * Custom branding permissions
+     * Priority support
+     * Enterprise features
+
+KEY LICENSE TERMS
+
+What You CAN Do:
++ Use the software for personal password management
++ Modify the source code for personal use
++ Distribute the original software with proper attribution
++ Create educational content and tutorials
++ Contribute to the open source project
+
+What You CANNOT Do:
+- Use the "ShadowHawk" name or logo in derivative works
+- Remove copyright notices or license terms
+- Hold the authors liable for security issues
+- Claim ownership of the original work
+- Use for commercial purposes without permission
+
+TRADEMARK PROTECTION
+
+The following are protected trademarks:
+- ShadowHawk (name)
+- ShadowHawk Password Manager (product name)
+
+Note: All trademarks are owned by Wiktor Kulikiewicz as an individual developer.
+
+SECURITY DISCLAIMER
+
+Important Security Notes
+WARNING: Users are responsible for:
+- Regular backups of password data
+- Maintaining strong master passwords
+- Following cybersecurity best practices
+- Keeping the software updated
+
+WARNING: The software provides security features but comes with no warranty 
+of absolute security.
+
+Privacy Assurance
+SECURE: Local Storage Only
+- All data stored locally on user's device
+- No data transmission to external servers
+- User maintains full control of encryption keys
+- No telemetry or tracking
+
+ATTRIBUTION REQUIREMENTS
+
+When redistributing or modifying ShadowHawk Password Manager:
+
+Required Attribution:
+    Based on ShadowHawk Password Manager
+    Copyright (c) 2025 Wiktor Kulikiewicz
+    Licensed under ShadowHawk Modified MIT License
+    Website: https://shadowhawk.cloud
+
+Code Attribution Example:
+    /*
+     * ShadowHawk Password Manager
+     * Copyright (c) 2025 Wiktor Kulikiewicz
+     * Licensed under ShadowHawk Modified MIT License
+     * https://shadowhawk.cloud
+     */
+
+LICENSE COMPATIBILITY
+
+Compatible Licenses:
++ MIT License (base compatibility)
++ Apache 2.0 (with proper attribution)
++ BSD Licenses (2-clause and 3-clause)
+
+Incompatible Licenses:
+- GPL v2/v3 (copyleft restrictions)
+- Proprietary commercial licenses (without permission)
+
+COMMERCIAL USE
+
+Enterprise Licensing
+For commercial deployment:
+1. Volume Licensing: Available for organizations
+2. White-Label Solutions: Custom branding options
+3. Enterprise Support: Priority technical support
+4. Custom Features: Tailored functionality development
+
+Contact Information:
+- Email: Available through GitHub repository
+- Website: https://shadowhawk.cloud
+- Support: Community-driven (open source) or priority (commercial)
+
+CONTRIBUTING
+
+Contributor Agreement
+By contributing to ShadowHawk Password Manager:
+- You grant Wiktor Kulikiewicz rights to use your contributions
+- Your contributions will be licensed under the same terms
+- You retain copyright to your original contributions
+- You warrant that you have the right to make the contribution
+
+Code of Conduct:
+- Follow security best practices
+- Respect user privacy and data protection
+- Maintain professional communication
+- Document security-related changes thoroughly
+
+LIABILITY AND WARRANTY
+
+Disclaimer of Warranty:
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+
+Limitation of Liability
+The authors and Wiktor Kulikiewicz shall not be liable for:
+- Data loss or corruption
+- Security breaches due to user error
+- Damages arising from software use
+- Business interruption or lost profits
+
+UPDATES AND CHANGES
+
+License Updates:
+- License terms may be updated for new versions
+- Existing installations continue under their original license
+- Users will be notified of significant license changes
+- GitHub repository maintains license history
+
+Software Updates:
+- Security updates are prioritized and recommended
+- Feature updates may include license clarifications
+- Users encouraged to stay updated for security reasons
+
+LEGAL JURISDICTION
+
+This license is governed by the laws of the jurisdiction where Wiktor 
+Kulikiewicz resides, with disputes resolved through arbitration where applicable.
+
+===============================================================================
+
+Version: 1.0
+Last Updated: January 20, 2025
+Applies To: ShadowHawk Password Manager v1.0+
